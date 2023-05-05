@@ -6,8 +6,8 @@ pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
 	fn build(&self, app: &mut App) {
-		// app.add_system(setup.in_schedule(OnEnter(AppState::Menu)))
-		app.add_startup_system(setup)
+		app.add_system(setup.in_schedule(OnEnter(AppState::Menu)))
+			.add_system(exit.in_schedule(OnExit(AppState::Menu)))
 			.add_system(menu_system.run_if(in_state(AppState::Menu)));
 	}
 }
@@ -23,6 +23,7 @@ fn menu_system(
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+	commands.spawn(Camera2dBundle::default());
 	commands
 		.spawn(NodeBundle {
 			style: Style {
@@ -35,10 +36,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 		})
 		.with_children(|parent| {
 			parent
-				.spawn(ButtonBundle {
-					background_color: Color::CYAN.into(),
-					..default()
-				})
+				.spawn(ButtonBundle { ..default() })
 				.with_children(|parent| {
 					parent.spawn(TextBundle::from_section(
 						"Button",
@@ -50,4 +48,10 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 					));
 				});
 		});
+}
+
+fn exit(mut commands: Commands, q_nodes: Query<(Entity, &Node)>) {
+	for (node, _) in q_nodes.iter() {
+		commands.entity(node).despawn();
+	}
 }
