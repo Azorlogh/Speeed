@@ -5,6 +5,7 @@ pub enum AppState {
 	Menu,
 	#[default]
 	Game,
+	Leaderboard,
 	Editor,
 }
 

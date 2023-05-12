@@ -49,6 +49,32 @@ pub fn handle_inputs(
 	{
 		actions.release(Action::Jump);
 	}
+
+	if keys.just_pressed(KeyCode::R)
+		|| gamepad
+			.map(|gp| {
+				buttons.just_pressed(GamepadButton {
+					gamepad: gp,
+					button_type: GamepadButtonType::East,
+				})
+			})
+			.unwrap_or(false)
+	{
+		actions.press(Action::Restart);
+	}
+	if keys.just_released(KeyCode::R)
+		|| gamepad
+			.map(|gp| {
+				buttons.just_released(GamepadButton {
+					gamepad: gp,
+					button_type: GamepadButtonType::East,
+				})
+			})
+			.unwrap_or(false)
+	{
+		actions.release(Action::Restart);
+	}
+
 	const STICK_THESHOLD: f32 = 0.8;
 	if keys.just_pressed(KeyCode::Left)
 		|| (prev_axes.horizontal >= -STICK_THESHOLD && axes.horizontal < -STICK_THESHOLD)
