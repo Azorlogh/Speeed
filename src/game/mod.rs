@@ -1,9 +1,10 @@
 use bevy::{prelude::*, render::camera::ScalingMode};
-use bevy_ecs_ldtk::{ldtk, LdtkWorldBundle, LevelSet};
-use bevy_rapier2d::prelude::*;
+use bevy_ecs_ldtk::{ldtk, LdtkWorldBundle};
+use bevy_rapier2d::prelude::{CollisionEvent, GravityScale};
 
 use crate::{
-	player,
+	level::finish::{self, Finish},
+	player::{self, Player},
 	states::{AppState, Exit},
 };
 
@@ -16,7 +17,8 @@ impl Plugin for GamePlugin {
 		)
 		.add_system(exit.in_schedule(OnExit(AppState::Game)))
 		.add_system(back_to_menu)
-		.add_systems((spawn_player,).distributive_run_if(in_state(AppState::Game)));
+		.add_systems((spawn_player, spawn_finish).distributive_run_if(in_state(AppState::Game)))
+		.add_system(finish.run_if(in_state(AppState::Game)));
 	}
 }
 
@@ -26,7 +28,7 @@ fn back_to_menu(mut next_app_state: ResMut<NextState<AppState>>, keys: Res<Input
 	}
 }
 
-fn exit(mut commands: Commands) {}
+fn exit(mut _commands: Commands) {}
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 	let mut camera = Camera2dBundle::default();
@@ -68,5 +70,53 @@ fn spawn_player(
 				Exit(AppState::Game),
 			))
 			.add_child(cam_entity);
+	}
+}
+
+fn spawn_finish(
+	mut commands: Commands,
+	q_spawned_ldtk_entities: Query<&ldtk::EntityInstance, Added<ldtk::EntityInstance>>,
+) {
+	for finish in q_spawned_ldtk_entities
+		.iter()
+		.filter(|e| e.identifier == "Finish")
+	{
+		dbg!(finish.grid);
+
+		commands.spawn((
+			finish::FinishBundle {
+				spatial: SpatialBundle::from_transform(Transform::from_translation(
+					(finish.grid.as_vec2() + 0.5).extend(0.0),
+				)),
+				..default()
+			},
+			Exit(AppState::Game),
+		));
+	}
+}
+
+fn finish(
+	mut collision_events: EventReader<CollisionEvent>,
+	mut q_player: Query<(Entity, &mut Player)>,
+	mut q_finish: Query<(Entity, &mut Finish)>,
+	mut next_state: ResMut<NextState<AppState>>,
+) {
+	let Ok((player_entity, mut player)) = q_player.get_single_mut() else {
+		return;
+	};
+	let Ok((finish_entity, mut finish)) = q_finish.get_single_mut() else {
+		return;
+	};
+	for collision_event in collision_events.iter() {
+		match collision_event {
+			CollisionEvent::Started(e0, e1, _) => {
+				if (*e0 == player_entity && *e1 == finish_entity)
+					|| (*e1 == player_entity && *e0 == finish_entity)
+				{
+					next_state.set(AppState::Menu);
+				}
+			}
+			_ => {}
+		}
 	}
 }
