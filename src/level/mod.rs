@@ -1,5 +1,6 @@
 pub mod finish;
 pub mod launchpad;
+pub mod start;
 
 use bevy::{
 	prelude::*,
@@ -10,6 +11,8 @@ use bevy_ecs_ldtk::{
 };
 use bevy_rapier2d::prelude::*;
 
+use crate::states::AppState;
+
 pub struct LevelPlugin;
 
 impl Plugin for LevelPlugin {
@@ -17,14 +20,18 @@ impl Plugin for LevelPlugin {
 		app.add_plugin(launchpad::LaunchpadPlugin)
 			.add_plugin(LdtkPlugin)
 			.configure_set(LdtkSystemSet::ProcessApi.before(PhysicsSet::SyncBackend))
-			.insert_resource(LevelSelection::Uid(0))
+			.insert_resource(LevelSelection::Uid(1))
 			.insert_resource(LdtkSettings {
 				level_spawn_behavior: LevelSpawnBehavior::UseZeroTranslation,
 				level_background: LevelBackground::Nonexistent,
 				..default()
 			})
 			.register_ldtk_int_cell::<WallBundle>(1)
-			.add_system(spawn_wall_collision);
+			.add_system(spawn_wall_collision)
+			.add_systems(
+				(start::spawn_start, finish::spawn_finish)
+					.distributive_run_if(in_state(AppState::Game)),
+			);
 	}
 }
 
@@ -35,9 +42,6 @@ pub struct Wall;
 pub struct WallBundle {
 	wall: Wall,
 }
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Component)]
-pub struct Spawn;
 
 pub fn spawn_wall_collision(
 	mut commands: Commands,

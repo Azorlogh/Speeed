@@ -71,7 +71,6 @@ pub struct LaunchpadBundle {
 }
 impl LaunchpadBundle {
 	fn new(pos: Vec2, vel: Vec2, effects: &mut Assets<EffectAsset>) -> Self {
-		dbg!(&pos, &vel);
 		let mut gradient = Gradient::new();
 		gradient.add_key(0.0, Vec4::new(8.0, 0.7, 0.2, 1.0));
 		gradient.add_key(1.0, Vec4::new(8.0, 0.7, 0.2, 0.0));
@@ -104,7 +103,6 @@ impl LaunchpadBundle {
 			effect: ParticleEffect::new(effect).with_z_layer_2d(Some(0.1)),
 			finish: Launchpad { vel },
 			spatial: SpatialBundle::from_transform(Transform::from_translation(pos.extend(0.0))),
-			// collider: Collider::ball(LAUNCHPAD_SIZE / 2.0),
 		}
 	}
 }

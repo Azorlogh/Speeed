@@ -1,4 +1,8 @@
-use bevy::{log::LogPlugin, prelude::*};
+use bevy::{
+	log::LogPlugin,
+	prelude::*,
+	window::{WindowMode, WindowResolution},
+};
 use bevy_hanabi::HanabiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier2d::prelude::*;
@@ -19,7 +23,22 @@ fn main() {
 	let mut app = App::new();
 
 	if DEBUG_SCHEDULE {
-		app.add_plugins(DefaultPlugins.build().disable::<LogPlugin>());
+		app.add_plugins(
+			DefaultPlugins
+				.build()
+				.disable::<LogPlugin>()
+				.set(WindowPlugin {
+					primary_window: Some(Window {
+						resizable: false,
+						mode: WindowMode::Windowed,
+						resolution: WindowResolution::new(1280., 720.)
+							.with_scale_factor_override(0.8),
+
+						..default()
+					}),
+					..default()
+				}),
+		);
 	} else {
 		app.add_plugins(DefaultPlugins);
 	}
