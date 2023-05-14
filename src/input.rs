@@ -1,6 +1,21 @@
 use bevy::prelude::*;
 
-use super::Action;
+pub struct InputPlugin;
+
+impl Plugin for InputPlugin {
+	fn build(&self, app: &mut App) {
+		app.insert_resource(Input::<Action>::default())
+			.add_system(handle_inputs);
+	}
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Action {
+	Jump,
+	Left,
+	Right,
+	Restart,
+}
 
 #[derive(Clone, Debug, Default)]
 pub struct GamepadAxes {

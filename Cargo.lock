@@ -781,6 +781,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_mod_debugdump"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1e89dfbe148a165d3506eab7e7c0b5339ccc7f238a475def713026bc9e8c706"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_render",
+ "bevy_utils",
+ "once_cell",
+ "petgraph",
+ "pretty-type-name",
+]
+
+[[package]]
 name = "bevy_pbr"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1842,9 +1857,12 @@ dependencies = [
  "bevy-inspector-egui",
  "bevy_ecs_ldtk",
  "bevy_hanabi",
+ "bevy_mod_debugdump",
  "bevy_prototype_lyon",
  "bevy_rapier2d",
  "humantime",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

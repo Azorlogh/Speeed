@@ -6,6 +6,7 @@ use bevy_hanabi::prelude::*;
 use bevy_rapier2d::prelude::CollisionEvent;
 
 use crate::{
+	input::Action,
 	leaderboard::{CurrentScore, Leaderboard},
 	level::{
 		finish::{self, Finish},
@@ -24,7 +25,9 @@ impl Plugin for GamePlugin {
 		)
 		.add_system(exit.in_schedule(OnExit(AppState::Game)))
 		.add_system(back_to_menu)
-		.add_systems((spawn_player, spawn_finish).distributive_run_if(in_state(AppState::Game)))
+		.add_systems(
+			(spawn_player, spawn_finish, restart).distributive_run_if(in_state(AppState::Game)),
+		)
 		.add_system(finish.run_if(in_state(AppState::Game)));
 	}
 }
@@ -46,7 +49,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 	let mut camera = Camera2dBundle::default();
 	camera.projection.scaling_mode = ScalingMode::FixedVertical(2.0);
 	camera.projection.scale = 2f32.powf(3.0);
-	commands.spawn(camera);
+	commands.spawn((camera, Exit(AppState::Game)));
 
 	let ldtk_handle = asset_server.load("levels.ldtk");
 	commands.spawn((
@@ -182,5 +185,16 @@ fn finish(
 			}
 			_ => {}
 		}
+	}
+}
+
+fn restart(
+	actions: Res<Input<Action>>,
+	mut q_player: Query<&mut Transform, With<Player>>,
+	mut q_spawn: Query<&ldtk::EntityInstance, With<Spawn>>,
+	mut next_state: ResMut<NextState<AppState>>,
+) {
+	if actions.just_pressed(Action::Restart) {
+		next_state.set(AppState::Game);
 	}
 }

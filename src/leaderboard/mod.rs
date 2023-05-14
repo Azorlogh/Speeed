@@ -1,27 +1,46 @@
-use std::time::Duration;
+use std::{error::Error, time::Duration};
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
-use crate::{player::Action, states::AppState};
+use crate::{input::Action, states::AppState};
 
 pub struct LeaderboardPlugin;
 
 impl Plugin for LeaderboardPlugin {
 	fn build(&self, app: &mut App) {
-		app.insert_resource(Leaderboard(vec![]))
+		app.insert_resource(Leaderboard::load())
 			.add_system(setup.in_schedule(OnEnter(AppState::Leaderboard)))
 			.add_system(exit.in_schedule(OnExit(AppState::Leaderboard)))
 			.add_system(menu_system.run_if(in_state(AppState::Leaderboard)));
 	}
 }
 
-#[derive(Resource)]
+#[derive(Resource, Serialize, Deserialize)]
 pub struct Leaderboard(Vec<u64>);
 
 impl Leaderboard {
+	pub fn load() -> Self {
+		Self::try_load().unwrap_or(Leaderboard(vec![]))
+	}
+
+	pub fn try_load() -> Result<Self, Box<dyn Error>> {
+		let s = std::fs::read_to_string("leaderboard.json")?;
+		Ok(serde_json::from_str(&s)?)
+	}
+
+	pub fn save(&self) -> Result<(), Box<dyn Error>> {
+		let s = serde_json::to_string(self)?;
+		std::fs::write("leaderboard.json", s);
+		Ok(())
+	}
+
 	pub fn add_score(&mut self, score: u64) {
 		let pos = self.0.binary_search(&score).unwrap_or_else(|e| e);
 		self.0.insert(pos, score);
+		if let Err(e) = self.save() {
+			warn!("failed to save leadeboard");
+		}
 	}
 }
 

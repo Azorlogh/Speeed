@@ -1,31 +1,21 @@
 use bevy::{prelude::*, render::texture::DEFAULT_IMAGE_HANDLE};
-use bevy_ecs_ldtk::ldtk;
 use bevy_rapier2d::prelude::*;
 
-use crate::{level::Spawn, states::AppState};
-
-mod input;
+use crate::{
+	input::{self, Action},
+	states::AppState,
+};
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
 	fn build(&self, app: &mut App) {
-		app.insert_resource(Input::<Action>::default())
-			.add_system(input::handle_inputs)
-			.add_systems(
-				(player_controls, player_jumps, player_render, player_restart)
-					.after(input::handle_inputs)
-					.distributive_run_if(in_state(AppState::Game)),
-			);
+		app.add_systems(
+			(player_controls, player_jumps, player_render)
+				.after(input::handle_inputs)
+				.distributive_run_if(in_state(AppState::Game)),
+		);
 	}
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Action {
-	Jump,
-	Left,
-	Right,
-	Restart,
 }
 
 #[derive(Component)]
@@ -163,22 +153,5 @@ fn player_jumps(
 	if player.jumping && velocity.linvel.y < 0.0 {
 		player.jumping = false;
 		gravity.0 = 1.0;
-	}
-}
-
-fn player_restart(
-	actions: Res<Input<Action>>,
-	mut q_player: Query<&mut Transform, With<Player>>,
-	mut q_spawn: Query<&ldtk::EntityInstance, With<Spawn>>,
-) {
-	if actions.just_pressed(Action::Restart) {
-		// println!("restart");
-		let Ok(mut transform) = q_player.get_single_mut() else {
-			return;
-		};
-		let Ok(spawn) = q_spawn.get_single_mut() else {
-			return;
-		};
-		transform.translation = (spawn.grid.as_vec2() + 0.5).extend(0.0);
 	}
 }
