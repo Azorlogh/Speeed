@@ -1,16 +1,13 @@
 use std::time::Instant;
 
 use bevy::{prelude::*, render::camera::ScalingMode};
-use bevy_ecs_ldtk::{LayerMetadata, LdtkWorldBundle, LevelSet};
+use bevy_ecs_ldtk::{LayerMetadata, LdtkWorldBundle, LevelSelection, LevelSet, Respawn};
 use bevy_rapier2d::prelude::CollisionEvent;
 
 use crate::{
 	input::Action,
 	leaderboard::{CurrentScore, Leaderboard, Score},
-	level::{
-		finish::{spawn_finish, Finish},
-		start::spawn_start,
-	},
+	level::finish::Finish,
 	player::Player,
 	states::{AppState, Exit},
 };
@@ -24,7 +21,8 @@ impl Plugin for GamePlugin {
 		)
 		.add_system(exit.in_schedule(OnExit(AppState::Game)))
 		.add_system(back_to_menu)
-		.add_systems((restart, finish).distributive_run_if(in_state(AppState::Game)));
+		.add_systems((restart, finish).distributive_run_if(in_state(AppState::Game)))
+		.add_startup_system(setup_level);
 	}
 }
 
@@ -39,24 +37,34 @@ fn back_to_menu(mut next_app_state: ResMut<NextState<AppState>>, keys: Res<Input
 
 fn exit(mut _commands: Commands) {}
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
+	let ldtk_handle = asset_server.load("levels.ldtk");
+	commands.spawn(LdtkWorldBundle {
+		ldtk_handle,
+		transform: Transform::from_scale(Vec3::splat(1.0 / 16.0)),
+		..default()
+	});
+}
+
+fn setup(
+	mut commands: Commands,
+	mut level_selection: ResMut<LevelSelection>,
+	q_ldtk_world: Query<Entity, With<LevelSet>>,
+) {
 	commands.insert_resource(StartTime(Instant::now()));
 
 	let mut camera = Camera2dBundle::default();
 	camera.projection.scaling_mode = ScalingMode::FixedVertical(2.0);
 	camera.projection.scale = 2f32.powf(3.0);
+	camera.transform.translation.z -= 100.0;
 	commands.spawn((camera, Exit(AppState::Game)));
 
-	let ldtk_handle = asset_server.load("levels.ldtk");
-	commands.spawn((
-		LdtkWorldBundle {
-			ldtk_handle,
-			transform: Transform::from_scale(Vec3::splat(1.0 / 16.0)),
-			level_set: LevelSet::from_iid("0160fe80-ed50-11ed-bc6b-698a03923046"),
-			..default()
-		},
-		Exit(AppState::Game),
-	));
+	// let world = q_ldtk_world.single();
+	// if *level_selection == LevelSelection::Index(0) {
+	// 	commands.entity(world).insert(Respawn);
+	// } else {
+	// 	*level_selection = LevelSelection::Index(0);
+	// }
 }
 
 pub fn grid_to_world(layer: &LayerMetadata, coord: IVec2) -> Vec2 {

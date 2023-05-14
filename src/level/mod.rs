@@ -1,6 +1,7 @@
 pub mod finish;
 pub mod launchpad;
 pub mod start;
+mod text;
 
 use bevy::{
 	prelude::*,
@@ -18,9 +19,10 @@ pub struct LevelPlugin;
 impl Plugin for LevelPlugin {
 	fn build(&self, app: &mut App) {
 		app.add_plugin(launchpad::LaunchpadPlugin)
+			.add_plugin(text::TextPlugin)
 			.add_plugin(LdtkPlugin)
 			.configure_set(LdtkSystemSet::ProcessApi.before(PhysicsSet::SyncBackend))
-			.insert_resource(LevelSelection::Uid(1))
+			.insert_resource(LevelSelection::Index(0))
 			.insert_resource(LdtkSettings {
 				level_spawn_behavior: LevelSpawnBehavior::UseZeroTranslation,
 				level_background: LevelBackground::Nonexistent,

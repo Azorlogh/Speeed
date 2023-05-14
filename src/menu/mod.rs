@@ -31,7 +31,9 @@ fn menu_system(
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-	commands.spawn(Camera2dBundle::default());
+	let mut camera = Camera2dBundle::default();
+	camera.transform.translation.z = -10000.0;
+	commands.spawn(camera);
 	commands
 		.spawn(NodeBundle {
 			style: Style {

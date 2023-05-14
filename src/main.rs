@@ -3,6 +3,10 @@ use bevy::{
 	prelude::*,
 	window::{WindowMode, WindowResolution},
 };
+use bevy_egui::{
+	egui::{self, FontDefinitions},
+	EguiContexts,
+};
 use bevy_hanabi::HanabiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier2d::prelude::*;
@@ -49,8 +53,8 @@ fn main() {
 			gravity: -Vec2::Y * 80.0,
 			..default()
 		})
-		.add_plugin(WorldInspectorPlugin::new())
 		.add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(1.0))
+		.add_plugin(bevy_egui::EguiPlugin)
 		.add_plugin(input::InputPlugin)
 		.add_plugin(states::StatePlugin)
 		.add_plugin(player::PlayerPlugin)
@@ -58,11 +62,48 @@ fn main() {
 		.add_plugin(menu::MenuPlugin)
 		.add_plugin(game::GamePlugin)
 		.add_plugin(editor::EditorPlugin)
-		.add_plugin(leaderboard::LeaderboardPlugin);
+		.add_plugin(leaderboard::LeaderboardPlugin)
+		.add_startup_system(configure_egui);
+
+	#[cfg(debug_assertions)]
+	app.add_plugin(WorldInspectorPlugin::new())
+		// .add_plugin(RapierDebugRenderPlugin::default())
+		;
 
 	if DEBUG_SCHEDULE {
 		bevy_mod_debugdump::print_main_schedule(&mut app);
 	}
 
 	app.run();
+}
+
+fn configure_egui(mut contexts: EguiContexts) {
+	let ctx = contexts.ctx_mut();
+	ctx.set_visuals(egui::Visuals::light());
+	let mut fonts = FontDefinitions::default();
+	// normal text
+	{
+		let mut f =
+			egui::FontData::from_static(include_bytes!("../assets/fonts/FiraSans-Bold.ttf"));
+		f.tweak.scale = 2.0;
+		fonts.font_data.insert("normal".to_owned(), f);
+		fonts
+			.families
+			.entry(egui::FontFamily::Proportional)
+			.or_default()
+			.insert(0, "normal".to_owned());
+	}
+	// // headers
+	// {
+	// 	let mut f =
+	// 		egui::FontData::from_static(include_bytes!("../assets/fonts/FiraSans-Bold.ttf"));
+	// 	fonts.font_data.insert("normal".to_owned(), f);
+	// 	fonts
+	// 		.families
+	// 		.entry(egui::FontFamily::Proportional)
+	// 		.or_default()
+	// 		.insert(0, "normal".to_owned());
+	// }
+
+	ctx.set_fonts(fonts);
 }

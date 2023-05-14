@@ -1856,6 +1856,7 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui",
  "bevy_ecs_ldtk",
+ "bevy_egui",
  "bevy_hanabi",
  "bevy_mod_debugdump",
  "bevy_prototype_lyon",
