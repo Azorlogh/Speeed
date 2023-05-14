@@ -1,4 +1,5 @@
 pub mod finish;
+pub mod launchpad;
 
 use bevy::{
 	prelude::*,
@@ -13,7 +14,8 @@ pub struct LevelPlugin;
 
 impl Plugin for LevelPlugin {
 	fn build(&self, app: &mut App) {
-		app.add_plugin(LdtkPlugin)
+		app.add_plugin(launchpad::LaunchpadPlugin)
+			.add_plugin(LdtkPlugin)
 			.configure_set(LdtkSystemSet::ProcessApi.before(PhysicsSet::SyncBackend))
 			.insert_resource(LevelSelection::Uid(0))
 			.insert_resource(LdtkSettings {

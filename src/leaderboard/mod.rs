@@ -16,8 +16,22 @@ impl Plugin for LeaderboardPlugin {
 	}
 }
 
+/// A score is counted as a number of milliseconds
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Resource, Serialize, Deserialize)]
+pub struct Score(pub u64);
+
+impl std::fmt::Display for Score {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(
+			f,
+			"{}",
+			humantime::format_duration(Duration::from_millis(self.0))
+		)
+	}
+}
+
 #[derive(Resource, Serialize, Deserialize)]
-pub struct Leaderboard(Vec<u64>);
+pub struct Leaderboard(Vec<Score>);
 
 impl Leaderboard {
 	pub fn load() -> Self {
@@ -31,21 +45,21 @@ impl Leaderboard {
 
 	pub fn save(&self) -> Result<(), Box<dyn Error>> {
 		let s = serde_json::to_string(self)?;
-		std::fs::write("leaderboard.json", s);
+		std::fs::write("leaderboard.json", s)?;
 		Ok(())
 	}
 
-	pub fn add_score(&mut self, score: u64) {
+	pub fn add_score(&mut self, score: Score) {
 		let pos = self.0.binary_search(&score).unwrap_or_else(|e| e);
 		self.0.insert(pos, score);
 		if let Err(e) = self.save() {
-			warn!("failed to save leadeboard");
+			warn!("failed to save leadeboard: {e}");
 		}
 	}
 }
 
 #[derive(Resource)]
-pub struct CurrentScore(pub u64);
+pub struct CurrentScore(pub Score);
 
 #[derive(Component)]
 pub struct RestartButton;
@@ -91,7 +105,7 @@ fn setup(
 				},
 			));
 			// Score
-			builder.spawn(label(format_score(score.0), &font, 60.0, Color::RED));
+			builder.spawn(label(score.0.to_string(), &font, 60.0, Color::RED));
 			// Leaderboard
 			builder
 				.spawn(NodeBundle {
@@ -116,7 +130,7 @@ fn setup(
 						.0;
 					for (i, s) in leaderboard.0.iter().enumerate() {
 						let color = if i == idx { Color::RED } else { Color::BLACK };
-						builder.spawn(label(format_score(*s), &font, 40.0, color));
+						builder.spawn(label(s.to_string(), &font, 40.0, color));
 					}
 				});
 			// Buttons
@@ -136,13 +150,6 @@ fn label(text: String, font: &Handle<Font>, font_size: f32, color: Color) -> Tex
 			font_size,
 			color,
 		},
-	)
-}
-
-fn format_score(score: u64) -> String {
-	format!(
-		"{}",
-		humantime::format_duration(Duration::from_millis(score))
 	)
 }
 

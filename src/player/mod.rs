@@ -124,11 +124,9 @@ fn player_render(mut q_player: Query<(&Player, &mut Sprite)>) {
 		return;
 	};
 	if player.remaining_jumps != 0 {
-		sprite.color = Color::BLACK;
-	} else if player.jumping {
-		sprite.color = Color::GREEN;
-	} else {
 		sprite.color = Color::RED;
+	} else if player.jumping {
+		sprite.color = Color::BLACK;
 	}
 }
 

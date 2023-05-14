@@ -7,7 +7,7 @@ use bevy_rapier2d::prelude::CollisionEvent;
 
 use crate::{
 	input::Action,
-	leaderboard::{CurrentScore, Leaderboard},
+	leaderboard::{CurrentScore, Leaderboard, Score},
 	level::{
 		finish::{self, Finish},
 		Spawn,
@@ -104,7 +104,7 @@ fn spawn_finish(
 		gradient.add_key(0.0, Vec4::new(0.5, 0.5, 1.0, 1.0));
 		gradient.add_key(1.0, Vec4::new(0.5, 0.5, 1.0, 0.0));
 
-		let spawner = Spawner::rate(30.0.into());
+		let spawner = Spawner::rate(10.0.into());
 		let effect = effects.add(
 			EffectAsset {
 				name: "FinishEffect".into(),
@@ -115,19 +115,19 @@ fn spawn_finish(
 			.init(InitPositionCircleModifier {
 				center: Vec3::ZERO,
 				axis: Vec3::Z,
-				radius: 2.0,
+				radius: 0.5,
 				dimension: ShapeDimension::Surface,
 			})
 			.init(InitVelocityCircleModifier {
 				center: Vec3::ZERO,
 				axis: Vec3::Z,
-				speed: (-0.3f32).into(),
+				speed: (-0.2f32).into(),
 			})
 			.init(InitLifetimeModifier {
 				lifetime: 5_f32.into(),
 			})
 			.render(SizeOverLifetimeModifier {
-				gradient: Gradient::constant(Vec2::splat(0.02)),
+				gradient: Gradient::constant(Vec2::splat(0.5)),
 			})
 			.render(ColorOverLifetimeModifier { gradient }),
 		);
@@ -152,7 +152,7 @@ fn spawn_finish(
 pub fn grid_to_world(layer: &LayerMetadata, coord: IVec2) -> Vec2 {
 	Vec2::new(
 		coord.x as f32 + 0.5,
-		layer.c_hei as f32 - coord.y as f32 + 0.5,
+		layer.c_hei as f32 - coord.y as f32 - 0.5,
 	)
 }
 
@@ -177,7 +177,7 @@ fn finish(
 				if (*e0 == player_entity && *e1 == finish_entity)
 					|| (*e1 == player_entity && *e0 == finish_entity)
 				{
-					let score = start_time.0.elapsed().as_millis() as u64;
+					let score = Score(start_time.0.elapsed().as_millis() as u64);
 					leaderboard.add_score(score);
 					commands.insert_resource(CurrentScore(score));
 					next_state.set(AppState::Leaderboard);
@@ -190,8 +190,8 @@ fn finish(
 
 fn restart(
 	actions: Res<Input<Action>>,
-	mut q_player: Query<&mut Transform, With<Player>>,
-	mut q_spawn: Query<&ldtk::EntityInstance, With<Spawn>>,
+	// mut q_player: Query<&mut Transform, With<Player>>,
+	// mut q_spawn: Query<&ldtk::EntityInstance, With<Spawn>>,
 	mut next_state: ResMut<NextState<AppState>>,
 ) {
 	if actions.just_pressed(Action::Restart) {

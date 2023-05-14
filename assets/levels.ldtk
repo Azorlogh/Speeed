@@ -305,7 +305,7 @@
 					"entityInstances": [
 						{
 							"__identifier": "Launchpad",
-							"__grid": [16,3],
+							"__grid": [23,1],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": null,
@@ -314,10 +314,10 @@
 							"width": 16,
 							"height": 16,
 							"defUid": 6,
-							"px": [256,48],
+							"px": [368,16],
 							"fieldInstances": [
-								{ "__identifier": "x", "__type": "Float", "__value": 10, "__tile": null, "defUid": 8, "realEditorValues": [{ "id": "V_Float", "params": [10] }] },
-								{ "__identifier": "y", "__type": "Float", "__value": 5, "__tile": null, "defUid": 9, "realEditorValues": [{ "id": "V_Float", "params": [5] }] }
+								{ "__identifier": "x", "__type": "Float", "__value": 50, "__tile": null, "defUid": 8, "realEditorValues": [{ "id": "V_Float", "params": [50] }] },
+								{ "__identifier": "y", "__type": "Float", "__value": 0, "__tile": null, "defUid": 9, "realEditorValues": [{ "id": "V_Float", "params": [0] }] }
 							]
 						},
 						{
@@ -336,7 +336,7 @@
 						},
 						{
 							"__identifier": "Finish",
-							"__grid": [54,15],
+							"__grid": [50,13],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": null,
@@ -345,7 +345,7 @@
 							"width": 16,
 							"height": 16,
 							"defUid": 4,
-							"px": [864,240],
+							"px": [800,208],
 							"fieldInstances": []
 						}
 					]
