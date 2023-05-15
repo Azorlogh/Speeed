@@ -1850,23 +1850,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "game"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy-inspector-egui",
- "bevy_ecs_ldtk",
- "bevy_egui",
- "bevy_hanabi",
- "bevy_mod_debugdump",
- "bevy_prototype_lyon",
- "bevy_rapier2d",
- "humantime",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "gethostname"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3253,6 +3236,23 @@ name = "renderdoc-sys"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1382d1f0a252c4bf97dc20d979a2fdd05b024acd7c2ed0f7595d7817666a157"
+
+[[package]]
+name = "revgame"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy-inspector-egui",
+ "bevy_ecs_ldtk",
+ "bevy_egui",
+ "bevy_hanabi",
+ "bevy_mod_debugdump",
+ "bevy_prototype_lyon",
+ "bevy_rapier2d",
+ "humantime",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "robust"

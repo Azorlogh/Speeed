@@ -6,7 +6,7 @@ use bevy_ecs_ldtk::{
 	LayerMetadata,
 };
 use bevy_hanabi::{
-	AccelModifier, ColorOverLifetimeModifier, EffectAsset, Gradient, InitLifetimeModifier,
+	ColorOverLifetimeModifier, EffectAsset, Gradient, InitLifetimeModifier,
 	InitPositionCircleModifier, ParticleEffect, ShapeDimension, SizeOverLifetimeModifier, Spawner,
 };
 use bevy_rapier2d::prelude::*;
@@ -38,13 +38,12 @@ fn spawn_portal(
 		.filter(|e| e.identifier == "Portal")
 	{
 		if let Err(e) = (|| {
-			let dest = *instance.get_point_field("x")?;
+			let dest = grid_to_world(q_layer.single(), *instance.get_point_field("destination")?);
+			let angle = instance.get_float_field("angle")?.to_radians();
+			let pos = grid_to_world(q_layer.single(), instance.grid);
+			let delta = dest - pos;
 			commands.spawn((
-				PortalBundle::new(
-					grid_to_world(q_layer.single(), instance.grid),
-					Vec2::new(x, y),
-					&mut effects,
-				),
+				PortalBundle::new(pos, delta, angle, &mut effects),
 				Exit(AppState::Game),
 			));
 			Result::<_, Box<dyn Error>>::Ok(())
@@ -58,7 +57,8 @@ const LAUNCHPAD_SIZE: f32 = 1.0;
 
 #[derive(Component)]
 pub struct Portal {
-	vel: Vec2,
+	delta: Vec2,
+	angle: f32,
 }
 
 #[derive(Bundle)]
@@ -69,7 +69,7 @@ pub struct PortalBundle {
 	pub effect: ParticleEffect,
 }
 impl PortalBundle {
-	fn new(pos: Vec2, vel: Vec2, effects: &mut Assets<EffectAsset>) -> Self {
+	fn new(pos: Vec2, delta: Vec2, angle: f32, effects: &mut Assets<EffectAsset>) -> Self {
 		let mut gradient = Gradient::new();
 		gradient.add_key(0.0, Vec4::new(0.1, 0.3, 0.9, 1.0));
 		gradient.add_key(1.0, Vec4::new(0.1, 0.3, 0.9, 0.0));
@@ -91,7 +91,7 @@ impl PortalBundle {
 			.init(InitLifetimeModifier {
 				lifetime: 0.5f32.into(),
 			})
-			.update(AccelModifier::constant(vel.extend(0.0).into()))
+			// .update(AccelModifier::constant(vel.extend(0.0).into()))
 			.render(SizeOverLifetimeModifier {
 				gradient: Gradient::constant(Vec2::splat(0.5)),
 			})
@@ -100,28 +100,29 @@ impl PortalBundle {
 
 		Self {
 			effect: ParticleEffect::new(effect).with_z_layer_2d(Some(0.1)),
-			finish: Portal { vel },
+			finish: Portal { delta, angle },
 			spatial: SpatialBundle::from_transform(Transform::from_translation(pos.extend(0.0))),
 		}
 	}
 }
 
 fn update_portal(
-	mut q_player: Query<&mut Transform, With<Player>>,
+	mut q_player: Query<(&mut Transform, &mut Velocity), With<Player>>,
 	q_portal: Query<(&Transform, &Portal), Without<Player>>,
 ) {
-	let Ok(player_tr) = q_player.get_single_mut() else {
+	let Ok((mut player_tr, mut player_vel)) = q_player.get_single_mut() else {
 		return;
 	};
 
-	for (launchpad_tr, launchpad) in &q_portal {
+	for (launchpad_tr, portal) in &q_portal {
 		if player_tr
 			.translation
 			.truncate()
 			.distance(launchpad_tr.translation.truncate())
 			<= LAUNCHPAD_SIZE
 		{
-			player_vel.linvel = launchpad.vel;
+			player_tr.translation += portal.delta.extend(0.0);
+			player_vel.linvel = Vec2::from_angle(portal.angle).rotate(player_vel.linvel);
 		}
 	}
 }

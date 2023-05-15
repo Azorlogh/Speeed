@@ -19,8 +19,9 @@ pub struct LevelPlugin;
 
 impl Plugin for LevelPlugin {
 	fn build(&self, app: &mut App) {
-		app.add_plugin(launchpad::LaunchpadPlugin)
-			.add_plugin(text::TextPlugin)
+		app.add_plugin(text::TextPlugin)
+			.add_plugin(launchpad::LaunchpadPlugin)
+			.add_plugin(portal::PortalPlugin)
 			.add_plugin(LdtkPlugin)
 			.configure_set(LdtkSystemSet::ProcessApi.before(PhysicsSet::SyncBackend))
 			.insert_resource(LevelSelection::Index(2))

@@ -14,6 +14,7 @@ pub enum Action {
 	Jump,
 	Left,
 	Right,
+	GroundPound,
 	Restart,
 }
 
@@ -88,6 +89,31 @@ pub fn handle_inputs(
 			.unwrap_or(false)
 	{
 		actions.release(Action::Restart);
+	}
+
+	if keys.just_pressed(KeyCode::Down)
+		|| gamepad
+			.map(|gp| {
+				buttons.just_pressed(GamepadButton {
+					gamepad: gp,
+					button_type: GamepadButtonType::East,
+				})
+			})
+			.unwrap_or(false)
+	{
+		actions.press(Action::GroundPound);
+	}
+	if keys.just_released(KeyCode::Down)
+		|| gamepad
+			.map(|gp| {
+				buttons.just_released(GamepadButton {
+					gamepad: gp,
+					button_type: GamepadButtonType::East,
+				})
+			})
+			.unwrap_or(false)
+	{
+		actions.release(Action::GroundPound);
 	}
 
 	const STICK_THESHOLD: f32 = 0.8;

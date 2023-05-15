@@ -31,7 +31,7 @@ pub struct Player {
 	jump_vel: f32,
 	speed: f32,
 	remaining_jumps: usize,
-	// in_air: bool,
+	ground_pound: bool,
 	jumping: bool,
 }
 
@@ -63,7 +63,7 @@ fn player_spawn(
 					-PLAYER_SIZE * 0.2,
 					0.0,
 				))),
-				ActiveEvents::COLLISION_EVENTS,
+				ActiveEvents::COLLISION_EVENTS | ActiveEvents::CONTACT_FORCE_EVENTS,
 				Exit(AppState::Game),
 			))
 			.id();
@@ -76,7 +76,7 @@ fn player_spawn(
 						jump_vel: 30.0,
 						speed: 15.0,
 						remaining_jumps: 1,
-						// in_air: false,
+						ground_pound: false,
 						jumping: false,
 					},
 					Sprite {
@@ -127,7 +127,6 @@ fn player_controls(
 	if action.just_pressed(Action::Jump) && player.remaining_jumps > 0 {
 		velocity.linvel.y = player.jump_vel;
 		player.remaining_jumps -= 1;
-		// player.in_air = true;
 		player.jumping = true;
 		gravity.0 = 0.5;
 	}
@@ -135,6 +134,11 @@ fn player_controls(
 		player.jumping = false;
 		gravity.0 = 1.0;
 	}
+
+	if action.just_pressed(Action::GroundPound) {
+		velocity.linvel.y = -player.jump_vel * 2.0;
+	}
+
 	ext_force.force = Vec2::ZERO;
 	if action.pressed(Action::Left) {
 		ext_force.force += Vec2::new(-player.speed, 0.0);
@@ -156,19 +160,20 @@ fn player_render(mut q_player: Query<(&Player, &mut Sprite)>) {
 }
 
 fn player_jumps(
-	mut collision_events: EventReader<CollisionEvent>,
+	mut ev_collision: EventReader<CollisionEvent>,
+	mut ev_contact_forces: EventReader<ContactForceEvent>,
 	mut q_player: Query<(Entity, &mut Player, &mut GravityScale, &Velocity)>,
 	mut q_walljump_sensor: Query<Entity, With<PlayerWalljumpSensor>>,
 	q_wall: Query<Option<&RestoresJump>>,
 ) {
-	let Ok((_, mut player, mut gravity, velocity)) = q_player.get_single_mut() else {
+	let Ok((player_entity, mut player, mut gravity, velocity)) = q_player.get_single_mut() else {
 		return;
 	};
 	let Ok(walljump_sensor_entity) = q_walljump_sensor.get_single_mut() else {
 		return;
 	};
 
-	for collision_event in collision_events.iter() {
+	for collision_event in ev_collision.iter() {
 		match collision_event {
 			CollisionEvent::Started(e0, e1, _) => {
 				let wall_entity = match walljump_sensor_entity {
@@ -179,11 +184,31 @@ fn player_jumps(
 				let restores_jump = q_wall.get(*wall_entity).unwrap();
 				if restores_jump.is_some() {
 					player.remaining_jumps = 1;
-					// player.in_air = false;
 				}
 			}
 			_ => {}
 		}
+	}
+	for forces in ev_contact_forces.iter() {
+		if forces.collider1 == player_entity || forces.collider2 == player_entity {
+			if forces.max_force_direction.dot(Vec2::Y).abs() > 0.7 {
+				player.ground_pound = false;
+			}
+		}
+		// match contact_forces {
+		// 	ContactForcesEvent::Started(e0, e1, _) if *e0 == e || *e1 == e => {
+		// 		let wall_entity = match walljump_sensor_entity {
+		// 			e if * == e => e1,
+		// 			e if *e1 == e => e0,
+		// 			_ => break,
+		// 		};
+		// 		let restores_jump = q_wall.get(*wall_entity).unwrap();
+		// 		if restores_jump.is_some() {
+		// 			player.remaining_jumps = 1;
+		// 		}
+		// 	}
+		// 	_ => {}
+		// }
 	}
 	if player.jumping && velocity.linvel.y < 0.0 {
 		player.jumping = false;
