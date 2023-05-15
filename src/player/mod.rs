@@ -33,9 +33,13 @@ pub struct Player {
 	remaining_jumps: usize,
 	ground_pound: bool,
 	jumping: bool,
+	in_air: bool,
 }
 
 const PLAYER_SIZE: f32 = 0.5;
+const PLAYER_SPEED: f32 = 150.0;
+const PLAYER_SPEED_IN_AIR: f32 = 13.0;
+const PLAYER_FRICTION: f32 = 0.1;
 
 #[derive(Component)]
 pub struct PlayerWalljumpSensor;
@@ -73,11 +77,12 @@ fn player_spawn(
 			.spawn((
 				(
 					Player {
-						jump_vel: 30.0,
-						speed: 15.0,
+						jump_vel: 20.0,
+						speed: PLAYER_SPEED,
 						remaining_jumps: 1,
 						ground_pound: false,
 						jumping: false,
+						in_air: true,
 					},
 					Sprite {
 						color: Color::rgb(0.25, 0.25, 0.75),
@@ -94,12 +99,12 @@ fn player_spawn(
 					LockedAxes::ROTATION_LOCKED,
 				),
 				Damping {
-					linear_damping: 5.0,
+					linear_damping: 2.0,
 					angular_damping: 0.0,
 				},
 				GravityScale(1.0),
 				Friction {
-					coefficient: 0.0,
+					coefficient: PLAYER_FRICTION,
 					combine_rule: CoefficientCombineRule::Min,
 				},
 				Restitution::default(),
@@ -128,6 +133,7 @@ fn player_controls(
 		velocity.linvel.y = player.jump_vel;
 		player.remaining_jumps -= 1;
 		player.jumping = true;
+		player.in_air = true;
 		gravity.0 = 0.5;
 	}
 	if action.just_released(Action::Jump) {
@@ -140,11 +146,17 @@ fn player_controls(
 	}
 
 	ext_force.force = Vec2::ZERO;
+	let speed = if player.in_air {
+		PLAYER_SPEED_IN_AIR
+	} else {
+		PLAYER_SPEED
+	};
+	// let speed = if player.in_air { 0.1 } else { 1.0 };
 	if action.pressed(Action::Left) {
-		ext_force.force += Vec2::new(-player.speed, 0.0);
+		ext_force.force += Vec2::new(-speed, 0.0);
 	}
 	if action.pressed(Action::Right) {
-		ext_force.force += Vec2::new(player.speed, 0.0);
+		ext_force.force += Vec2::new(speed, 0.0);
 	}
 }
 
@@ -193,6 +205,7 @@ fn player_jumps(
 		if forces.collider1 == player_entity || forces.collider2 == player_entity {
 			if forces.max_force_direction.dot(Vec2::Y).abs() > 0.7 {
 				player.ground_pound = false;
+				player.in_air = false;
 			}
 		}
 		// match contact_forces {

@@ -53,7 +53,7 @@ fn spawn_portal(
 	}
 }
 
-const LAUNCHPAD_SIZE: f32 = 1.0;
+const LAUNCHPAD_SIZE: f32 = 1.5;
 
 #[derive(Component)]
 pub struct Portal {
