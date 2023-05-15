@@ -63,7 +63,7 @@ fn player_spawn(
 					-PLAYER_SIZE * 0.2,
 					0.0,
 				))),
-				ActiveEvents::COLLISION_EVENTS | ActiveEvents::CONTACT_FORCE_EVENTS,
+				ActiveEvents::COLLISION_EVENTS,
 				Exit(AppState::Game),
 			))
 			.id();
@@ -103,7 +103,7 @@ fn player_spawn(
 					combine_rule: CoefficientCombineRule::Min,
 				},
 				Restitution::default(),
-				ActiveEvents::COLLISION_EVENTS,
+				ActiveEvents::COLLISION_EVENTS | ActiveEvents::CONTACT_FORCE_EVENTS,
 				Exit(AppState::Game),
 			))
 			.add_child(cam_entity)
@@ -118,9 +118,10 @@ fn player_controls(
 		&mut ExternalForce,
 		&mut GravityScale,
 		&mut Velocity,
+		&mut Damping,
 	)>,
 ) {
-	let Ok((mut player, mut ext_force, mut gravity, mut velocity)) = q_player.get_single_mut() else {
+	let Ok((mut player, mut ext_force, mut gravity, mut velocity, mut damping)) = q_player.get_single_mut() else {
 		return;
 	};
 
@@ -137,6 +138,13 @@ fn player_controls(
 
 	if action.just_pressed(Action::GroundPound) {
 		velocity.linvel.y = -player.jump_vel * 2.0;
+		player.ground_pound = true;
+	}
+
+	if player.ground_pound {
+		damping.linear_damping = 2.0;
+	} else {
+		damping.linear_damping = 5.0;
 	}
 
 	ext_force.force = Vec2::ZERO;
@@ -190,8 +198,10 @@ fn player_jumps(
 		}
 	}
 	for forces in ev_contact_forces.iter() {
+		println!("contact forces");
 		if forces.collider1 == player_entity || forces.collider2 == player_entity {
-			if forces.max_force_direction.dot(Vec2::Y).abs() > 0.7 {
+			println!("collision! {:?}", forces.max_force_direction);
+			if forces.max_force_direction.dot(Vec2::Y).abs() > 0.5 {
 				player.ground_pound = false;
 			}
 		}

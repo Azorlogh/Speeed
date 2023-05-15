@@ -96,7 +96,7 @@ pub fn handle_inputs(
 			.map(|gp| {
 				buttons.just_pressed(GamepadButton {
 					gamepad: gp,
-					button_type: GamepadButtonType::East,
+					button_type: GamepadButtonType::West,
 				})
 			})
 			.unwrap_or(false)
@@ -108,7 +108,7 @@ pub fn handle_inputs(
 			.map(|gp| {
 				buttons.just_released(GamepadButton {
 					gamepad: gp,
-					button_type: GamepadButtonType::East,
+					button_type: GamepadButtonType::West,
 				})
 			})
 			.unwrap_or(false)

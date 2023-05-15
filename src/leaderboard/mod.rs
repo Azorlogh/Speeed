@@ -8,7 +8,7 @@ use bevy_egui::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::states::AppState;
+use crate::{input::Action, states::AppState};
 
 pub struct LeaderboardPlugin;
 
@@ -40,7 +40,7 @@ pub struct Leaderboard(Vec<Vec<Score>>);
 
 impl Leaderboard {
 	pub fn load() -> Self {
-		Self::try_load().unwrap_or(Leaderboard(vec![vec![]; 3]))
+		Self::try_load().unwrap_or(Leaderboard(vec![vec![]; 6]))
 	}
 
 	pub fn try_load() -> Result<Self, Box<dyn Error>> {
@@ -71,16 +71,6 @@ pub struct RestartButton;
 #[derive(Component)]
 pub struct NextButton;
 
-// fn menu_system(
-// 	mut next_app_state: ResMut<NextState<AppState>>,
-// 	actions: Res<Input<Action>>,
-// 	q_restart: Query<&Interaction, With<RestartButton>>,
-// ) {
-// 	if *q_restart.single() == Interaction::Clicked || actions.just_pressed(Action::Jump) {
-// 		next_app_state.set(AppState::Game);
-// 	}
-// }
-
 fn setup(mut commands: Commands) {
 	let mut camera = Camera2dBundle::default();
 	camera.transform.translation.z = -10000.0;
@@ -95,6 +85,7 @@ fn leaderboard_ui(
 	mut next_app_state: ResMut<NextState<AppState>>,
 	mut level_selection: ResMut<LevelSelection>,
 	q_ldtk_world: Query<Entity, With<LevelSet>>,
+	actions: Res<Input<Action>>,
 ) {
 	let LevelSelection::Index(level) = level_selection.clone() else {
 		panic!("expected level index");
@@ -125,11 +116,11 @@ fn leaderboard_ui(
 				}
 			});
 			ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-				if ui.button("Next").clicked() {
+				if ui.button("Next").clicked() || actions.just_pressed(Action::Jump) {
 					*level_selection = LevelSelection::Index(level + 1);
 					next_app_state.set(AppState::Game);
 				}
-				if ui.button("Restart").clicked() {
+				if ui.button("Restart").clicked() || actions.just_pressed(Action::GroundPound) {
 					let world = q_ldtk_world.single();
 					commands.entity(world).insert(Respawn);
 					next_app_state.set(AppState::Game);
