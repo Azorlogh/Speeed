@@ -1,5 +1,6 @@
 pub mod finish;
 pub mod launchpad;
+mod portal;
 pub mod start;
 mod text;
 
@@ -22,14 +23,16 @@ impl Plugin for LevelPlugin {
 			.add_plugin(text::TextPlugin)
 			.add_plugin(LdtkPlugin)
 			.configure_set(LdtkSystemSet::ProcessApi.before(PhysicsSet::SyncBackend))
-			.insert_resource(LevelSelection::Index(0))
+			.insert_resource(LevelSelection::Index(2))
 			.insert_resource(LdtkSettings {
 				level_spawn_behavior: LevelSpawnBehavior::UseZeroTranslation,
 				level_background: LevelBackground::Nonexistent,
 				..default()
 			})
 			.register_ldtk_int_cell::<WallBundle>(1)
-			.add_system(spawn_wall_collision)
+			.register_ldtk_int_cell::<IceBundle>(2)
+			.add_system(spawn_wall_collision::<Wall>)
+			.add_system(spawn_wall_collision::<Ice>)
 			.add_systems(
 				(start::spawn_start, finish::spawn_finish)
 					.distributive_run_if(in_state(AppState::Game)),
@@ -45,10 +48,35 @@ pub struct WallBundle {
 	wall: Wall,
 }
 
-pub fn spawn_wall_collision(
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Component)]
+pub struct Ice;
+#[derive(Clone, Debug, Default, Bundle, LdtkIntCell)]
+pub struct IceBundle {
+	ice: Ice,
+}
+
+#[derive(Component)]
+pub struct RestoresJump;
+
+pub trait MapTile: Component {
+	fn restores_jump() -> bool {
+		false
+	}
+}
+
+impl MapTile for Wall {
+	fn restores_jump() -> bool {
+		true
+	}
+}
+
+impl MapTile for Ice {}
+
+/// Spawn colliders for component T
+pub fn spawn_wall_collision<T: MapTile>(
 	mut commands: Commands,
-	wall_query: Query<(&GridCoords, &Parent), Added<Wall>>,
-	parent_query: Query<&Parent, Without<Wall>>,
+	wall_query: Query<(&GridCoords, &Parent), Added<T>>,
+	parent_query: Query<&Parent, Without<T>>,
 	level_query: Query<(Entity, &Handle<LdtkLevel>)>,
 	levels: Res<Assets<LdtkLevel>>,
 ) {
@@ -169,24 +197,24 @@ pub fn spawn_wall_collision(
 					// 1. Adjusts the transforms to be relative to the level for free
 					// 2. the colliders will be despawned automatically when levels unload
 					for wall_rect in wall_rects {
-						level
-							.spawn_empty()
-							.insert(Collider::cuboid(
-								(wall_rect.right as f32 - wall_rect.left as f32 + 1.)
-									* grid_size as f32 / 2.,
-								(wall_rect.top as f32 - wall_rect.bottom as f32 + 1.)
-									* grid_size as f32 / 2.,
-							))
-							.insert(RigidBody::Fixed)
-							.insert(Friction::new(1.0))
-							.insert(Transform::from_xyz(
-								(wall_rect.left + wall_rect.right + 1) as f32 * grid_size as f32
-									/ 2.,
-								(wall_rect.bottom + wall_rect.top + 1) as f32 * grid_size as f32
-									/ 2.,
-								0.,
-							))
-							.insert(GlobalTransform::default());
+						let mut cmds = level.spawn_empty();
+						cmds.insert(Collider::cuboid(
+							(wall_rect.right as f32 - wall_rect.left as f32 + 1.)
+								* grid_size as f32 / 2.,
+							(wall_rect.top as f32 - wall_rect.bottom as f32 + 1.)
+								* grid_size as f32 / 2.,
+						))
+						.insert(RigidBody::Fixed)
+						.insert(Friction::new(1.0))
+						.insert(Transform::from_xyz(
+							(wall_rect.left + wall_rect.right + 1) as f32 * grid_size as f32 / 2.,
+							(wall_rect.bottom + wall_rect.top + 1) as f32 * grid_size as f32 / 2.,
+							0.,
+						))
+						.insert(GlobalTransform::default());
+						if T::restores_jump() {
+							cmds.insert(RestoresJump);
+						}
 					}
 				});
 			}

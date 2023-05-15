@@ -47,7 +47,7 @@ fn main() {
 		app.add_plugins(DefaultPlugins);
 	}
 
-	app.insert_resource(ClearColor(Color::WHITE * 0.9))
+	app.insert_resource(ClearColor(Color::WHITE))
 		.add_plugin(HanabiPlugin)
 		.insert_resource(RapierConfiguration {
 			gravity: -Vec2::Y * 80.0,

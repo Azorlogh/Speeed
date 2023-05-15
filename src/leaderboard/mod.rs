@@ -3,12 +3,12 @@ use std::{error::Error, time::Duration};
 use bevy::prelude::*;
 use bevy_ecs_ldtk::{LevelSelection, LevelSet, Respawn};
 use bevy_egui::{
-	egui::{self, Color32, Layout},
+	egui::{self, Align, Color32, Layout},
 	EguiContexts,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{input::Action, states::AppState};
+use crate::states::AppState;
 
 pub struct LeaderboardPlugin;
 
@@ -36,11 +36,11 @@ impl std::fmt::Display for Score {
 }
 
 #[derive(Resource, Serialize, Deserialize)]
-pub struct Leaderboard(Vec<Score>);
+pub struct Leaderboard(Vec<Vec<Score>>);
 
 impl Leaderboard {
 	pub fn load() -> Self {
-		Self::try_load().unwrap_or(Leaderboard(vec![]))
+		Self::try_load().unwrap_or(Leaderboard(vec![vec![]; 3]))
 	}
 
 	pub fn try_load() -> Result<Self, Box<dyn Error>> {
@@ -54,9 +54,9 @@ impl Leaderboard {
 		Ok(())
 	}
 
-	pub fn add_score(&mut self, score: Score) {
-		let pos = self.0.binary_search(&score).unwrap_or_else(|e| e);
-		self.0.insert(pos, score);
+	pub fn add_score(&mut self, level: usize, score: Score) {
+		let pos = self.0[level].binary_search(&score).unwrap_or_else(|e| e);
+		self.0[level].insert(pos, score);
 		if let Err(e) = self.save() {
 			warn!("failed to save leadeboard: {e}");
 		}
@@ -89,7 +89,6 @@ fn setup(mut commands: Commands) {
 
 fn leaderboard_ui(
 	mut commands: Commands,
-	asset_server: Res<AssetServer>,
 	score: Res<CurrentScore>,
 	leaderboard: Res<Leaderboard>,
 	mut egui_ctx: EguiContexts,
@@ -97,8 +96,11 @@ fn leaderboard_ui(
 	mut level_selection: ResMut<LevelSelection>,
 	q_ldtk_world: Query<Entity, With<LevelSet>>,
 ) {
-	let idx = leaderboard
-		.0
+	let LevelSelection::Index(level) = level_selection.clone() else {
+		panic!("expected level index");
+	};
+
+	let idx = leaderboard.0[level]
 		.iter()
 		.enumerate()
 		.filter(|(_, v)| score.0 == **v)
@@ -111,7 +113,7 @@ fn leaderboard_ui(
 			ui.label("Well played!");
 			ui.heading(&score.0.to_string());
 			ui.group(|ui| {
-				for (i, s) in leaderboard.0.iter().enumerate() {
+				for (i, s) in leaderboard.0[level].iter().enumerate() {
 					let style = ui.style_mut();
 
 					if i == idx {
@@ -122,118 +124,19 @@ fn leaderboard_ui(
 					ui.label(&s.to_string());
 				}
 			});
-			ui.with_layout(Layout::left_to_right(egui::Align::Center), |ui| {
+			ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+				if ui.button("Next").clicked() {
+					*level_selection = LevelSelection::Index(level + 1);
+					next_app_state.set(AppState::Game);
+				}
 				if ui.button("Restart").clicked() {
 					let world = q_ldtk_world.single();
 					commands.entity(world).insert(Respawn);
 					next_app_state.set(AppState::Game);
 				}
-				if ui.button("Next").clicked() {
-					let LevelSelection::Index(idx) = level_selection.as_mut() else {
-						panic!("couldn't change level idx");
-					};
-					*idx += 1;
-					// commands.entity(world).insert(Respawn);
-					println!("{:?}", level_selection.as_ref());
-					next_app_state.set(AppState::Game);
-				}
 			});
 		});
 	});
-
-	// let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-	// commands
-	// 	.spawn(NodeBundle {
-	// 		style: Style {
-	// 			size: Size::all(Val::Percent(100.0)),
-	// 			align_items: AlignItems::Center,
-	// 			justify_content: JustifyContent::Center,
-	// 			margin: UiRect::all(Val::Px(50.0)),
-	// 			flex_direction: FlexDirection::Column,
-	// 			..default()
-	// 		},
-	// 		..default()
-	// 	})
-	// 	.with_children(|builder| {
-	// 		// Title
-	// 		builder.spawn(TextBundle::from_section(
-	// 			"Well played!",
-	// 			TextStyle {
-	// 				font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-	// 				font_size: 40.0,
-	// 				color: Color::BLACK,
-	// 			},
-	// 		));
-	// 		// Score
-	// 		builder.spawn(label(score.0.to_string(), &font, 60.0, Color::RED));
-	// 		// Leaderboard
-	// 		builder
-	// 			.spawn(NodeBundle {
-	// 				style: Style {
-	// 					size: Size::all(Val::Percent(100.0)),
-	// 					align_items: AlignItems::Center,
-	// 					flex_direction: FlexDirection::Column,
-	// 					border: UiRect::all(Val::Px(2.0)),
-	// 					..default()
-	// 				},
-	// 				..default()
-	// 			})
-	// 			.with_children(|builder| {
-	// 				// Find our own score in the leaderboard to highlighing it
-	// 				let idx = leaderboard
-	// 					.0
-	// 					.iter()
-	// 					.enumerate()
-	// 					.filter(|(_, v)| score.0 == **v)
-	// 					.last()
-	// 					.unwrap()
-	// 					.0;
-	// 				for (i, s) in leaderboard.0.iter().enumerate() {
-	// 					let color = if i == idx { Color::RED } else { Color::BLACK };
-	// 					builder.spawn(label(s.to_string(), &font, 40.0, color));
-	// 				}
-	// 			});
-	// 		// Buttons
-	// 		builder
-	// 			.spawn(NodeBundle {
-	// 				style: Style {
-	// 					size: Size::all(Val::Percent(100.0)),
-	// 					align_items: AlignItems::Center,
-	// 					flex_direction: FlexDirection::Row,
-	// 					align_content: AlignContent::SpaceAround,
-	// 					..default()
-	// 				},
-	// 				..default()
-	// 			})
-	// 			.with_children(|builder| {
-	// 				builder
-	// 					.spawn((ButtonBundle::default(), RestartButton))
-	// 					.with_children(|builder| {
-	// 						builder.spawn(label("Restart".to_owned(), &font, 40.0, Color::BLACK));
-	// 					});
-	// 				builder
-	// 					.spawn((ButtonBundle::default(), NextButton))
-	// 					.with_children(|builder| {
-	// 						builder.spawn(label(
-	// 							"Next Level".to_owned(),
-	// 							&font,
-	// 							40.0,
-	// 							Color::BLACK,
-	// 						));
-	// 					});
-	// 			});
-	// 	});
-}
-
-fn label(text: String, font: &Handle<Font>, font_size: f32, color: Color) -> TextBundle {
-	TextBundle::from_section(
-		text,
-		TextStyle {
-			font: font.clone(),
-			font_size,
-			color,
-		},
-	)
 }
 
 fn exit(mut commands: Commands, q_nodes: Query<Entity, Or<(With<Node>, With<Camera>)>>) {

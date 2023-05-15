@@ -16,13 +16,12 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
 	fn build(&self, app: &mut App) {
-		app.add_systems(
-			(setup, crate::level::spawn_wall_collision).in_schedule(OnEnter(AppState::Game)),
-		)
-		.add_system(exit.in_schedule(OnExit(AppState::Game)))
-		.add_system(back_to_menu)
-		.add_systems((restart, finish).distributive_run_if(in_state(AppState::Game)))
-		.add_startup_system(setup_level);
+		app.add_event::<Restart>()
+			.add_systems((setup,).in_schedule(OnEnter(AppState::Game)))
+			.add_system(exit.in_schedule(OnExit(AppState::Game)))
+			.add_system(back_to_menu)
+			.add_systems((restart, finish).distributive_run_if(in_state(AppState::Game)))
+			.add_startup_system(setup_level);
 	}
 }
 
@@ -46,11 +45,7 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
 	});
 }
 
-fn setup(
-	mut commands: Commands,
-	mut level_selection: ResMut<LevelSelection>,
-	q_ldtk_world: Query<Entity, With<LevelSet>>,
-) {
+fn setup(mut commands: Commands) {
 	commands.insert_resource(StartTime(Instant::now()));
 
 	let mut camera = Camera2dBundle::default();
@@ -58,13 +53,6 @@ fn setup(
 	camera.projection.scale = 2f32.powf(3.0);
 	camera.transform.translation.z -= 100.0;
 	commands.spawn((camera, Exit(AppState::Game)));
-
-	// let world = q_ldtk_world.single();
-	// if *level_selection == LevelSelection::Index(0) {
-	// 	commands.entity(world).insert(Respawn);
-	// } else {
-	// 	*level_selection = LevelSelection::Index(0);
-	// }
 }
 
 pub fn grid_to_world(layer: &LayerMetadata, coord: IVec2) -> Vec2 {
@@ -81,6 +69,7 @@ fn finish(
 	mut q_finish: Query<Entity, With<Finish>>,
 	start_time: Res<StartTime>,
 	mut leaderboard: ResMut<Leaderboard>,
+	level: Res<LevelSelection>,
 	mut next_state: ResMut<NextState<AppState>>,
 ) {
 	let Ok(player_entity) = q_player.get_single_mut() else {
@@ -96,7 +85,9 @@ fn finish(
 					|| (*e1 == player_entity && *e0 == finish_entity)
 				{
 					let score = Score(start_time.0.elapsed().as_millis() as u64);
-					leaderboard.add_score(score);
+					if let LevelSelection::Index(level) = level.as_ref() {
+						leaderboard.add_score(*level, score);
+					}
 					commands.insert_resource(CurrentScore(score));
 					next_state.set(AppState::Leaderboard);
 				}
@@ -106,13 +97,20 @@ fn finish(
 	}
 }
 
+pub struct Restart;
+
 fn restart(
+	mut commands: Commands,
 	actions: Res<Input<Action>>,
 	// mut q_player: Query<&mut Transform, With<Player>>,
 	// mut q_spawn: Query<&ldtk::EntityInstance, With<Spawn>>,
 	mut next_state: ResMut<NextState<AppState>>,
+	mut ev_restart: EventReader<Restart>,
+	q_ldtk_world: Query<Entity, With<LevelSet>>,
 ) {
-	if actions.just_pressed(Action::Restart) {
+	if ev_restart.iter().count() > 0 || actions.just_pressed(Action::Restart) {
+		let world = q_ldtk_world.single();
+		commands.entity(world).insert(Respawn);
 		next_state.set(AppState::Game);
 	}
 }

@@ -6,7 +6,10 @@ use bevy_ecs_ldtk::{
 	LayerMetadata,
 };
 
-use crate::{game::grid_to_world, states::AppState};
+use crate::{
+	game::grid_to_world,
+	states::{AppState, Exit},
+};
 
 pub struct TextPlugin;
 
@@ -31,23 +34,26 @@ fn spawn_text(
 				.get_string_field("content")?
 				.replace("<jump>", "Space");
 
-			commands.spawn((Text2dBundle {
-				text: Text::from_section(
-					content,
-					TextStyle {
-						font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-						font_size: 50.0,
-						color: Color::BLACK,
-						..default()
-					},
-				)
-				.with_alignment(TextAlignment::Center),
-				transform: Transform::from_translation(
-					grid_to_world(q_layer.single(), instance.grid).extend(0.0),
-				)
-				.with_scale(Vec3::splat(1.0 / 50.0)),
-				..default()
-			},));
+			commands.spawn((
+				Text2dBundle {
+					text: Text::from_section(
+						content,
+						TextStyle {
+							font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+							font_size: 50.0,
+							color: Color::BLACK,
+							..default()
+						},
+					)
+					.with_alignment(TextAlignment::Center),
+					transform: Transform::from_translation(
+						grid_to_world(q_layer.single(), instance.grid).extend(0.0),
+					)
+					.with_scale(Vec3::splat(1.0 / 50.0 * 0.6)),
+					..default()
+				},
+				Exit(AppState::Game),
+			));
 
 			Result::<_, Box<dyn Error>>::Ok(())
 		})() {

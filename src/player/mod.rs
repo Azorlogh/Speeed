@@ -2,7 +2,9 @@ use bevy::{prelude::*, render::texture::DEFAULT_IMAGE_HANDLE};
 use bevy_rapier2d::prelude::*;
 
 use crate::{
+	game::Restart,
 	input::{self, Action},
+	level::RestoresJump,
 	states::{AppState, Exit},
 };
 
@@ -11,7 +13,13 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
 	fn build(&self, app: &mut App) {
 		app.add_event::<SpawnPlayer>().add_systems(
-			(player_spawn, player_controls, player_jumps, player_render)
+			(
+				player_spawn,
+				player_controls,
+				player_jumps,
+				player_render,
+				player_restart,
+			)
 				.after(input::handle_inputs)
 				.distributive_run_if(in_state(AppState::Game)),
 		);
@@ -23,7 +31,7 @@ pub struct Player {
 	jump_vel: f32,
 	speed: f32,
 	remaining_jumps: usize,
-	in_air: bool,
+	// in_air: bool,
 	jumping: bool,
 }
 
@@ -68,7 +76,7 @@ fn player_spawn(
 						jump_vel: 30.0,
 						speed: 15.0,
 						remaining_jumps: 1,
-						in_air: false,
+						// in_air: false,
 						jumping: false,
 					},
 					Sprite {
@@ -119,7 +127,7 @@ fn player_controls(
 	if action.just_pressed(Action::Jump) && player.remaining_jumps > 0 {
 		velocity.linvel.y = player.jump_vel;
 		player.remaining_jumps -= 1;
-		player.in_air = true;
+		// player.in_air = true;
 		player.jumping = true;
 		gravity.0 = 0.5;
 	}
@@ -151,6 +159,7 @@ fn player_jumps(
 	mut collision_events: EventReader<CollisionEvent>,
 	mut q_player: Query<(Entity, &mut Player, &mut GravityScale, &Velocity)>,
 	mut q_walljump_sensor: Query<Entity, With<PlayerWalljumpSensor>>,
+	q_wall: Query<Option<&RestoresJump>>,
 ) {
 	let Ok((_, mut player, mut gravity, velocity)) = q_player.get_single_mut() else {
 		return;
@@ -158,12 +167,19 @@ fn player_jumps(
 	let Ok(walljump_sensor_entity) = q_walljump_sensor.get_single_mut() else {
 		return;
 	};
+
 	for collision_event in collision_events.iter() {
 		match collision_event {
 			CollisionEvent::Started(e0, e1, _) => {
-				if *e0 == walljump_sensor_entity || *e1 == walljump_sensor_entity {
+				let wall_entity = match walljump_sensor_entity {
+					e if *e0 == e => e1,
+					e if *e1 == e => e0,
+					_ => break,
+				};
+				let restores_jump = q_wall.get(*wall_entity).unwrap();
+				if restores_jump.is_some() {
 					player.remaining_jumps = 1;
-					player.in_air = false;
+					// player.in_air = false;
 				}
 			}
 			_ => {}
@@ -172,5 +188,14 @@ fn player_jumps(
 	if player.jumping && velocity.linvel.y < 0.0 {
 		player.jumping = false;
 		gravity.0 = 1.0;
+	}
+}
+
+fn player_restart(mut ev_restart: EventWriter<Restart>, q_player: Query<&Transform, With<Player>>) {
+	let Ok(transform) = q_player.get_single() else {
+		return;
+	};
+	if transform.translation.y <= -5.0 {
+		ev_restart.send(Restart)
 	}
 }
