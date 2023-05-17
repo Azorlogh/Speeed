@@ -40,7 +40,7 @@ pub struct Player {
 }
 
 const PLAYER_SIZE: f32 = 0.5;
-const PLAYER_MAX_SPEED: f32 = 15.0;
+const PLAYER_MAX_SPEED: f32 = 12.0;
 
 #[derive(Component)]
 pub struct PlayerWalljumpSensor;
@@ -99,7 +99,7 @@ fn player_spawn(
 				(
 					Player {
 						jump_vel: 22.0,
-						speed: 400.0,
+						speed: 50.0,
 						remaining_jumps: 1,
 						ground_pound: false,
 						jumping: false,
