@@ -50,7 +50,7 @@ fn setup(mut commands: Commands) {
 
 	let mut camera = Camera2dBundle::default();
 	camera.projection.scaling_mode = ScalingMode::FixedVertical(2.0);
-	camera.projection.scale = 2f32.powf(4.0);
+	camera.projection.scale = 2f32.powf(3.0);
 	camera.transform.translation.z -= 100.0;
 	commands.spawn((camera, Exit(AppState::Game)));
 }
