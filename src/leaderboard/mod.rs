@@ -57,6 +57,7 @@ impl Leaderboard {
 	pub fn add_score(&mut self, level: usize, score: Score) {
 		let pos = self.0[level].binary_search(&score).unwrap_or_else(|e| e);
 		self.0[level].insert(pos, score);
+		self.0[level].truncate(10);
 		if let Err(e) = self.save() {
 			warn!("failed to save leadeboard: {e}");
 		}
@@ -95,19 +96,22 @@ fn leaderboard_ui(
 		.iter()
 		.enumerate()
 		.filter(|(_, v)| score.0 == **v)
-		.last()
-		.unwrap()
-		.0;
+		.map(|(i, _)| i)
+		.last();
 
 	egui::CentralPanel::default().show(egui_ctx.ctx_mut(), |ui| {
 		ui.vertical_centered(|ui| {
-			ui.label("Well played!");
+			let msg = match idx.is_some() {
+				true => "Well played!",
+				false => "Better luck next time :)",
+			};
+			ui.label(msg);
 			ui.heading(&score.0.to_string());
 			ui.group(|ui| {
 				for (i, s) in leaderboard.0[level].iter().enumerate() {
 					let style = ui.style_mut();
 
-					if i == idx {
+					if Some(i) == idx {
 						style.visuals.override_text_color = Some(Color32::RED);
 					} else {
 						style.visuals.override_text_color = None;

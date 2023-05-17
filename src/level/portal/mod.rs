@@ -6,7 +6,7 @@ use bevy_ecs_ldtk::{
 	LayerMetadata,
 };
 use bevy_hanabi::{
-	ColorOverLifetimeModifier, EffectAsset, Gradient, InitLifetimeModifier,
+	AccelModifier, ColorOverLifetimeModifier, EffectAsset, Gradient, InitLifetimeModifier,
 	InitPositionCircleModifier, ParticleEffect, ShapeDimension, SizeOverLifetimeModifier, Spawner,
 };
 use bevy_rapier2d::prelude::*;
@@ -85,13 +85,13 @@ impl PortalBundle {
 			.init(InitPositionCircleModifier {
 				center: Vec3::ZERO,
 				axis: Vec3::Y,
-				radius: 0.2,
+				radius: 1.0,
 				dimension: ShapeDimension::Surface,
 			})
 			.init(InitLifetimeModifier {
 				lifetime: 0.5f32.into(),
 			})
-			// .update(AccelModifier::constant(vel.extend(0.0).into()))
+			.update(AccelModifier::constant((Vec3::Y * 5.0).into()))
 			.render(SizeOverLifetimeModifier {
 				gradient: Gradient::constant(Vec2::splat(0.5)),
 			})

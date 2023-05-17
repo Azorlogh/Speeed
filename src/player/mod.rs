@@ -98,7 +98,7 @@ fn player_spawn(
 			.spawn((
 				(
 					Player {
-						jump_vel: 22.0,
+						jump_vel: 23.1,
 						speed: 50.0,
 						remaining_jumps: 1,
 						ground_pound: false,
