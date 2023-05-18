@@ -39,7 +39,8 @@ fn spawn_text(
 					text: Text::from_section(
 						content,
 						TextStyle {
-							font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+							// font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+							font: asset_server.load("fonts/Stencilia-A.ttf"),
 							font_size: 50.0,
 							color: Color::BLACK,
 							..default()
