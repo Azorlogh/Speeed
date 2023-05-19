@@ -130,6 +130,7 @@ fn player_spawn(
 				},
 				Restitution::default(),
 				ActiveEvents::COLLISION_EVENTS,
+				Ccd::enabled(),
 				Exit(AppState::Game),
 			))
 			.add_child(cam_entity)
@@ -146,11 +147,10 @@ fn player_controls(
 		&mut ExternalForce,
 		&mut GravityScale,
 		&mut Velocity,
-		&mut Damping,
 		&mut Friction,
 	)>,
 ) {
-	let Ok((mut player, mut ext_force, mut gravity, mut velocity, mut damping, mut friction)) = q_player.get_single_mut() else {
+	let Ok((mut player, mut ext_force, mut gravity, mut velocity, mut friction)) = q_player.get_single_mut() else {
 		return;
 	};
 
@@ -158,7 +158,6 @@ fn player_controls(
 		velocity.linvel.y = player.jump_vel;
 		player.remaining_jumps -= 1;
 		player.jumping = true;
-		// player.in_air = true;
 		gravity.0 = 0.5;
 	}
 	if action.just_released(Action::Jump) {
@@ -171,34 +170,21 @@ fn player_controls(
 		player.ground_pound = true;
 	}
 
-	// if player.ground_pound {
-	// 	damping.linear_damping = 2.0;
-	// } else {
-	// 	damping.linear_damping = 5.0;
-	// }
-
 	ext_force.force = Vec2::ZERO;
 	if action.pressed(Action::Left) && velocity.linvel.x > -PLAYER_MAX_SPEED {
-		// ext_force.force += Vec2::new(-player.speed, 0.0);
 		if velocity.linvel.x > -PLAYER_MAX_SPEED {
 			velocity.linvel.x =
 				(velocity.linvel.x - player.speed * time.delta_seconds()).max(-PLAYER_MAX_SPEED);
 		}
-		// if !player.in_air {
-		// 	velocity.linvel.x = velocity.linvel.x.max(-PLAYER_MAX_SPEED);
-		// }
 	}
 	if action.pressed(Action::Right) && velocity.linvel.x < PLAYER_MAX_SPEED {
-		// ext_force.force += Vec2::new(player.speed, 0.0);
 		if velocity.linvel.x < PLAYER_MAX_SPEED {
 			velocity.linvel.x =
 				(velocity.linvel.x + player.speed * time.delta_seconds()).min(PLAYER_MAX_SPEED);
 		}
-		// if !player.in_air {
-		// 	velocity.linvel.x = velocity.linvel.x.min(PLAYER_MAX_SPEED);
-		// }
 	}
 	if !action.pressed(Action::Left) && !action.pressed(Action::Right) {
+		// prevent sliding when the user is not moving sideways
 		friction.coefficient = 1.0;
 	} else {
 		friction.coefficient = 0.0;
@@ -209,11 +195,6 @@ fn player_render(mut q_player: Query<(&Player, &mut Sprite)>) {
 	let Ok((player, mut sprite)) = q_player.get_single_mut() else {
 		return;
 	};
-	// if player.in_air {
-	// 	sprite.color = Color::BLUE;
-	// } else {
-	// 	sprite.color = Color::BLACK;
-	// }
 	if player.remaining_jumps != 0 {
 		sprite.color = Color::RED;
 	} else {
@@ -233,23 +214,16 @@ fn player_on_ground(
 		return;
 	};
 
-	let colliding = ground_sensor.iter().collect::<Vec<_>>();
-	// println!("colliding entities: {:?}", colliding);
-
 	player.in_air = ground_sensor.len() == 0;
-	// if !player.in_air && !player.jumping {
-	// 	player.remaining_jumps = 1;
-	// }
 }
 
 fn player_jumps(
 	mut ev_collision: EventReader<CollisionEvent>,
-	mut ev_contact_forces: EventReader<ContactForceEvent>,
-	mut q_player: Query<(Entity, &mut Player, &mut GravityScale, &Velocity)>,
+	mut q_player: Query<(&mut Player, &mut GravityScale, &Velocity)>,
 	mut q_walljump_sensor: Query<Entity, With<PlayerWalljumpSensor>>,
 	q_wall: Query<Option<&RestoresJump>>,
 ) {
-	let Ok((player_entity, mut player, mut gravity, velocity)) = q_player.get_single_mut() else {
+	let Ok((mut player, mut gravity, velocity)) = q_player.get_single_mut() else {
 		return;
 	};
 	let Ok(walljump_sensor_entity) = q_walljump_sensor.get_single_mut() else {
@@ -259,13 +233,11 @@ fn player_jumps(
 	for collision_event in ev_collision.iter() {
 		match collision_event {
 			CollisionEvent::Started(e0, e1, _) => {
-				println!("collision. {collision_event:?}");
 				let wall_entity = match walljump_sensor_entity {
 					e if *e0 == e => e1,
 					e if *e1 == e => e0,
 					_ => continue,
 				};
-				println!("collided with something");
 				let restores_jump = q_wall.get(*wall_entity).unwrap();
 				if restores_jump.is_some() {
 					player.remaining_jumps = 1;
@@ -274,30 +246,6 @@ fn player_jumps(
 			_ => {}
 		}
 	}
-	// for forces in ev_contact_forces.iter() {
-	// 	// println!("contact forces");
-	// 	if forces.collider1 == player_entity || forces.collider2 == player_entity {
-	// 		// println!("collision! {:?}", forces.max_force_direction);
-	// 		if forces.max_force_direction.dot(Vec2::Y).abs() > 0.7 {
-	// 			player.ground_pound = false;
-	// 			// player.in_air = false;
-	// 		}
-	// 	}
-	// 	// match contact_forces {
-	// 	// 	ContactForcesEvent::Started(e0, e1, _) if *e0 == e || *e1 == e => {
-	// 	// 		let wall_entity = match walljump_sensor_entity {
-	// 	// 			e if * == e => e1,
-	// 	// 			e if *e1 == e => e0,
-	// 	// 			_ => break,
-	// 	// 		};
-	// 	// 		let restores_jump = q_wall.get(*wall_entity).unwrap();
-	// 	// 		if restores_jump.is_some() {
-	// 	// 			player.remaining_jumps = 1;
-	// 	// 		}
-	// 	// 	}
-	// 	// 	_ => {}
-	// 	// }
-	// }
 	if player.jumping && velocity.linvel.y < 0.0 {
 		player.jumping = false;
 		gravity.0 = 1.0;

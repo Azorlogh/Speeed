@@ -54,11 +54,6 @@ fn spawn_portal(
 					angle_out,
 				},
 			});
-
-			// commands.spawn((
-			// 	PortalBundle::new(pos, delta, angle, &mut effects),
-			// 	Exit(AppState::Game),
-			// ));
 			Result::<_, Box<dyn Error>>::Ok(())
 		})() {
 			warn!("failed to spawn launchpad: {e}");
@@ -122,6 +117,7 @@ fn portal_spawn(
 			SpatialBundle::from_transform(Transform::from_translation(
 				spawn_portal.pos.extend(0.0),
 			)),
+			Collider::segment(Vec2::X * -1.5, Vec2::X * 1.5),
 			Exit(AppState::Game),
 		));
 
@@ -167,23 +163,59 @@ fn portal_spawn(
 }
 
 fn update_portal(
-	mut q_player: Query<(&mut Transform, &mut Velocity), With<Player>>,
-	q_portal: Query<(&Transform, &Portal), Without<Player>>,
+	mut ev_collision: EventReader<CollisionEvent>,
+	mut q_player: Query<(Entity, &mut Transform, &mut Velocity), With<Player>>,
+	q_portal: Query<(Entity, &Transform, &Portal), Without<Player>>,
 ) {
-	let Ok((mut player_tr, mut player_vel)) = q_player.get_single_mut() else {
+	let Ok((player_entity, mut player_tr, mut player_vel)) = q_player.get_single_mut() else {
 		return;
 	};
+	// let Ok((portal_entity, portal_tr, portal)) = q_portal.get_single() else {
+	// 	return;
+	// };
 
-	for (launchpad_tr, portal) in &q_portal {
-		if player_tr
-			.translation
-			.truncate()
-			.distance(launchpad_tr.translation.truncate())
-			<= LAUNCHPAD_SIZE
-		{
-			player_tr.translation += portal.delta.extend(0.0);
-			player_vel.linvel =
-				Vec2::from_angle(portal.angle_in - portal.angle_out).rotate(player_vel.linvel);
+	for collision_event in ev_collision.iter() {
+		match collision_event {
+			CollisionEvent::Started(e0, e1, _) => {
+				if [*e0, *e1].contains(&player_entity) {
+					if let Some((_, portal_tr, portal)) =
+						[e0, e1].iter().find_map(|e| q_portal.get(**e).ok())
+					{
+						let offset =
+							player_tr.translation.truncate() - portal_tr.translation.truncate();
+
+						let angle = Vec2::from_angle(portal.angle_in - portal.angle_out);
+
+						player_tr.translation =
+							portal_tr.translation
+								+ portal.delta.extend(0.0) + angle.rotate(offset).extend(0.0);
+						player_vel.linvel = angle.rotate(player_vel.linvel);
+					}
+				}
+			}
+			_ => {}
 		}
 	}
 }
+
+// fn update_portal(
+// 	mut q_player: Query<(&mut Transform, &mut Velocity), With<Player>>,
+// 	q_portal: Query<(&Transform, &Portal), Without<Player>>,
+// ) {
+// 	let Ok((mut player_tr, mut player_vel)) = q_player.get_single_mut() else {
+// 		return;
+// 	};
+
+// 	for (launchpad_tr, portal) in &q_portal {
+// 		if player_tr
+// 			.translation
+// 			.truncate()
+// 			.distance(launchpad_tr.translation.truncate())
+// 			<= LAUNCHPAD_SIZE
+// 		{
+// 			player_tr.translation += portal.delta.extend(0.0);
+// 			player_vel.linvel =
+// 				Vec2::from_angle(portal.angle_in - portal.angle_out).rotate(player_vel.linvel);
+// 		}
+// 	}
+// }
