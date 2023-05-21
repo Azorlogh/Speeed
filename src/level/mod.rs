@@ -1,6 +1,7 @@
 pub mod finish;
 pub mod launchpad;
 mod portal;
+mod rope;
 pub mod start;
 mod text;
 
@@ -22,9 +23,10 @@ impl Plugin for LevelPlugin {
 		app.add_plugin(text::TextPlugin)
 			.add_plugin(launchpad::LaunchpadPlugin)
 			.add_plugin(portal::PortalPlugin)
+			.add_plugin(rope::RopePlugin)
 			.add_plugin(LdtkPlugin)
 			.configure_set(LdtkSystemSet::ProcessApi.before(PhysicsSet::SyncBackend))
-			.insert_resource(LevelSelection::Index(2))
+			.insert_resource(LevelSelection::Index(3))
 			.insert_resource(LdtkSettings {
 				level_spawn_behavior: LevelSpawnBehavior::UseZeroTranslation,
 				level_background: LevelBackground::Nonexistent,

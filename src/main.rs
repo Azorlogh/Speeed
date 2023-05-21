@@ -66,8 +66,10 @@ fn main() {
 		.add_startup_system(configure_egui);
 
 	#[cfg(debug_assertions)]
-	app.add_plugin(WorldInspectorPlugin::new())
-		.add_plugin(RapierDebugRenderPlugin::default());
+	{
+		app.add_plugin(WorldInspectorPlugin::new());
+		app.add_plugin(RapierDebugRenderPlugin::default());
+	}
 
 	if DEBUG_SCHEDULE {
 		bevy_mod_debugdump::print_main_schedule(&mut app);

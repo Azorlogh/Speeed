@@ -31,12 +31,12 @@ impl Plugin for PlayerPlugin {
 
 #[derive(Component, Reflect)]
 pub struct Player {
-	jump_vel: f32,
-	speed: f32,
-	remaining_jumps: usize,
-	ground_pound: bool,
-	jumping: bool,
-	in_air: bool,
+	pub jump_vel: f32,
+	pub speed: f32,
+	pub remaining_jumps: usize,
+	pub ground_pound: bool,
+	pub jumping: bool,
+	pub in_air: bool,
 }
 
 const PLAYER_SIZE: f32 = 0.5;
@@ -96,41 +96,43 @@ fn player_spawn(
 		// Player
 		commands
 			.spawn((
+				Player {
+					jump_vel: 23.1,
+					speed: 50.0,
+					remaining_jumps: 1,
+					ground_pound: false,
+					jumping: false,
+					in_air: true,
+				},
+				Sprite {
+					color: Color::rgb(0.25, 0.25, 0.75),
+					custom_size: Some(Vec2::splat(PLAYER_SIZE)),
+					..default()
+				},
+				SpatialBundle::from_transform(Transform::from_translation(pos.extend(1.0))),
+				DEFAULT_IMAGE_HANDLE.typed::<Image>(),
 				(
-					Player {
-						jump_vel: 23.1,
-						speed: 50.0,
-						remaining_jumps: 1,
-						ground_pound: false,
-						jumping: false,
-						in_air: true,
-					},
-					Sprite {
-						color: Color::rgb(0.25, 0.25, 0.75),
-						custom_size: Some(Vec2::splat(PLAYER_SIZE)),
-						..default()
-					},
-					SpatialBundle::from_transform(Transform::from_translation(pos.extend(1.0))),
-					DEFAULT_IMAGE_HANDLE.typed::<Image>(),
 					RigidBody::Dynamic,
 					Velocity::zero(),
 					Collider::ball(PLAYER_SIZE / 2.0),
 					ExternalForce::default(),
 					ExternalImpulse::default(),
 					LockedAxes::ROTATION_LOCKED,
+					ColliderMassProperties::Density(10.0),
+					Damping {
+						linear_damping: 2.0,
+						angular_damping: 0.0,
+					},
+					GravityScale(1.0),
+					Friction {
+						coefficient: 0.0,
+						combine_rule: CoefficientCombineRule::Min,
+					},
+					CollidingEntities::default(),
+					Restitution::default(),
+					ActiveEvents::COLLISION_EVENTS,
+					Ccd::enabled(),
 				),
-				Damping {
-					linear_damping: 2.0,
-					angular_damping: 0.0,
-				},
-				GravityScale(1.0),
-				Friction {
-					coefficient: 0.0,
-					combine_rule: CoefficientCombineRule::Min,
-				},
-				Restitution::default(),
-				ActiveEvents::COLLISION_EVENTS,
-				Ccd::enabled(),
 				Exit(AppState::Game),
 			))
 			.add_child(cam_entity)
@@ -139,7 +141,7 @@ fn player_spawn(
 	}
 }
 
-fn player_controls(
+pub fn player_controls(
 	action: Res<Input<Action>>,
 	time: Res<Time>,
 	mut q_player: Query<(
@@ -155,7 +157,7 @@ fn player_controls(
 	};
 
 	if action.just_pressed(Action::Jump) && player.remaining_jumps > 0 {
-		velocity.linvel.y = player.jump_vel;
+		velocity.linvel.y = velocity.linvel.y.max(player.jump_vel);
 		player.remaining_jumps -= 1;
 		player.jumping = true;
 		gravity.0 = 0.5;

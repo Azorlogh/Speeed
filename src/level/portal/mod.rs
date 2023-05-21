@@ -29,8 +29,6 @@ impl Plugin for PortalPlugin {
 }
 
 fn spawn_portal(
-	mut commands: Commands,
-	mut effects: ResMut<Assets<EffectAsset>>,
 	mut ev_spawn_portal: EventWriter<SpawnPortal>,
 	q_layer: Query<&LayerMetadata>,
 	q_spawned_ldtk_entities: Query<&ldtk::EntityInstance, Added<ldtk::EntityInstance>>,
@@ -60,8 +58,6 @@ fn spawn_portal(
 		}
 	}
 }
-
-const LAUNCHPAD_SIZE: f32 = 1.0;
 
 #[derive(Clone, Component)]
 pub struct Portal {
@@ -197,25 +193,3 @@ fn update_portal(
 		}
 	}
 }
-
-// fn update_portal(
-// 	mut q_player: Query<(&mut Transform, &mut Velocity), With<Player>>,
-// 	q_portal: Query<(&Transform, &Portal), Without<Player>>,
-// ) {
-// 	let Ok((mut player_tr, mut player_vel)) = q_player.get_single_mut() else {
-// 		return;
-// 	};
-
-// 	for (launchpad_tr, portal) in &q_portal {
-// 		if player_tr
-// 			.translation
-// 			.truncate()
-// 			.distance(launchpad_tr.translation.truncate())
-// 			<= LAUNCHPAD_SIZE
-// 		{
-// 			player_tr.translation += portal.delta.extend(0.0);
-// 			player_vel.linvel =
-// 				Vec2::from_angle(portal.angle_in - portal.angle_out).rotate(player_vel.linvel);
-// 		}
-// 	}
-// }
