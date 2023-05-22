@@ -36,7 +36,7 @@ fn main() {
 						resizable: false,
 						mode: WindowMode::Windowed,
 						resolution: WindowResolution::new(1280., 720.)
-							.with_scale_factor_override(0.8),
+							,
 
 						..default()
 					}),

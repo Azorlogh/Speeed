@@ -36,10 +36,36 @@ impl Plugin for LevelPlugin {
 			.register_ldtk_int_cell::<IceBundle>(2)
 			.add_system(spawn_wall_collision::<Wall>)
 			.add_system(spawn_wall_collision::<Ice>)
+			.add_system(bug_workaround)
 			.add_systems(
 				(start::spawn_start, finish::spawn_finish)
 					.distributive_run_if(in_state(AppState::Game)),
 			);
+	}
+}
+
+// There is a bug in `bevy_ecs_ldtk` causing parts of the level to be invisible
+// This seems to fix it
+#[derive(Default)]
+struct LocalWorkaroundState(Vec<(Entity, u32)>);
+fn bug_workaround(
+	mut q_level: Query<&mut Transform>,
+	q_added_level: Query<Entity, Added<Handle<LdtkLevel>>>,
+	mut state: Local<LocalWorkaroundState>,
+) {
+	for e in q_added_level.iter() {
+		state.0.push((e, 60));
+	}
+	for i in (0..state.0.len()).rev() {
+		let (e, t) = &mut state.0[i];
+		*t -= 1;
+		if *t == 0 {
+			if let Ok(mut tr) = q_level.get_mut(*e) {
+				println!("fixed: {e:?}");
+				// tr.translation.x = 0.0001;
+			}
+			state.0.remove(i);
+		}
 	}
 }
 
@@ -194,13 +220,14 @@ pub fn spawn_wall_collision<T: MapTile>(
 					prev_row = current_row;
 				}
 
-				commands.entity(level_entity).with_children(|level| {
+				// commands.entity(level_entity).with_children(|level| {
 					// Spawn colliders for every rectangle..
 					// Making the collider a child of the level serves two purposes:
 					// 1. Adjusts the transforms to be relative to the level for free
 					// 2. the colliders will be despawned automatically when levels unload
 					for wall_rect in wall_rects {
-						let mut cmds = level.spawn_empty();
+						// let mut cmds = level.spawn_empty();
+						let mut cmds = commands.spawn(());
 						cmds.insert(Collider::cuboid(
 							(wall_rect.right as f32 - wall_rect.left as f32 + 1.)
 								* grid_size as f32 / 2.,
@@ -219,7 +246,7 @@ pub fn spawn_wall_collision<T: MapTile>(
 							cmds.insert(RestoresJump);
 						}
 					}
-				});
+				// });
 			}
 		});
 	}
