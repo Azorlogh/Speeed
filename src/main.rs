@@ -3,6 +3,7 @@ use bevy::{
 	prelude::*,
 	window::{WindowMode, WindowResolution},
 };
+use bevy_ecs_tilemap::prelude::TilemapRenderSettings;
 use bevy_egui::{
 	egui::{self, FontDefinitions},
 	EguiContexts,
@@ -48,6 +49,9 @@ fn main() {
 	}
 
 	app.insert_resource(ClearColor(Color::WHITE))
+		.insert_resource(TilemapRenderSettings {
+			render_chunk_size: UVec2::new(4096, 4096),
+		})
 		.add_plugin(HanabiPlugin)
 		.insert_resource(RapierConfiguration {
 			gravity: -Vec2::Y * 80.0,

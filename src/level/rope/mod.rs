@@ -92,7 +92,7 @@ fn rope_spawn(mut commands: Commands, mut ev_spawn_rope: EventReader<SpawnRope>)
 					RigidBody::Dynamic,
 					ImpulseJoint::new(anchor, joint),
 					Sensor,
-					AdditionalMassProperties::Mass(0.1),
+					ColliderMassProperties::Mass(1.0),
 					Damping {
 						linear_damping: 1.0,
 						angular_damping: 0.0,
@@ -100,7 +100,7 @@ fn rope_spawn(mut commands: Commands, mut ev_spawn_rope: EventReader<SpawnRope>)
 					Collider::capsule(
 						Vec2::Y * SEGMENT_SIZE / 2.0,
 						-Vec2::Y * SEGMENT_SIZE / 2.0,
-						0.5,
+						1.0,
 					),
 					SpatialBundle::from_transform(Transform::from_translation(
 						(spawn_rope.pos - (idx as f32 * Vec2::Y)).extend(0.0),
