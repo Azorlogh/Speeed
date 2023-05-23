@@ -71,7 +71,7 @@
 		},
 		{
 			"__type": "IntGrid",
-			"identifier": "IntGrid",
+			"identifier": "BaseGrid",
 			"type": "IntGrid",
 			"uid": 2,
 			"doc": null,
@@ -639,7 +639,7 @@
 					]
 				},
 				{
-					"__identifier": "IntGrid",
+					"__identifier": "BaseGrid",
 					"__type": "IntGrid",
 					"__cWid": 64,
 					"__cHei": 16,
@@ -824,7 +824,7 @@
 					]
 				},
 				{
-					"__identifier": "IntGrid",
+					"__identifier": "BaseGrid",
 					"__type": "IntGrid",
 					"__cWid": 64,
 					"__cHei": 32,
@@ -1025,7 +1025,7 @@
 					]
 				},
 				{
-					"__identifier": "IntGrid",
+					"__identifier": "BaseGrid",
 					"__type": "IntGrid",
 					"__cWid": 64,
 					"__cHei": 32,
@@ -1230,7 +1230,7 @@
 					]
 				},
 				{
-					"__identifier": "IntGrid",
+					"__identifier": "BaseGrid",
 					"__type": "IntGrid",
 					"__cWid": 128,
 					"__cHei": 32,
@@ -1469,7 +1469,7 @@
 					]
 				},
 				{
-					"__identifier": "IntGrid",
+					"__identifier": "BaseGrid",
 					"__type": "IntGrid",
 					"__cWid": 64,
 					"__cHei": 32,
@@ -1649,7 +1649,7 @@
 					]
 				},
 				{
-					"__identifier": "IntGrid",
+					"__identifier": "BaseGrid",
 					"__type": "IntGrid",
 					"__cWid": 128,
 					"__cHei": 32,
@@ -1842,7 +1842,7 @@
 					"entityInstances": []
 				},
 				{
-					"__identifier": "IntGrid",
+					"__identifier": "BaseGrid",
 					"__type": "IntGrid",
 					"__cWid": 128,
 					"__cHei": 32,

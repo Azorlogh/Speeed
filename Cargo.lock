@@ -2338,6 +2338,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
+name = "ldtk2"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94fc2d55c21c21527e7b3e1084c80cdf29c35328b97db5469e9a519600903e1c"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "lewton"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3250,6 +3261,7 @@ dependencies = [
  "bevy_prototype_lyon",
  "bevy_rapier2d",
  "humantime",
+ "ldtk2",
  "serde",
  "serde_json",
 ]
