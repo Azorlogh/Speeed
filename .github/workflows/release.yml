@@ -33,17 +33,17 @@ jobs:
         if: matrix.os == 'windows-latest'
         with:
           name: tunefire-${{ github.event.release.tag_name }}_win64.exe
-          path: target/release/tf-desktop.exe
+          path: target/release/revgame.exe
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: Shopify/upload-to-release@master
         if: matrix.os == 'ubuntu-latest'
         with:
           name: tunefire-${{ github.event.release.tag_name }}_linux
-          path: target/release/tf-desktop
+          path: target/release/revgame
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: Shopify/upload-to-release@master
         if: matrix.os == 'macos-latest'
         with:
           name: tunefire-${{ github.event.release.tag_name }}_macos
-          path: target/release/tf-desktop
+          path: target/release/revgame
           repo-token: ${{ secrets.GITHUB_TOKEN }}
