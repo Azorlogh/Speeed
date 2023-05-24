@@ -121,7 +121,7 @@ fn leaderboard_ui(
 			});
 			ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
 				if ui.button("Next").clicked() || actions.just_pressed(Action::Jump) {
-					*level_selection = LevelSelection::Index(level + 1);
+					*level_selection = LevelSelection::Index((level + 1) % 7);
 					next_app_state.set(AppState::Game);
 				}
 				if ui.button("Restart").clicked() || actions.just_pressed(Action::GroundPound) {

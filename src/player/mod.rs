@@ -37,6 +37,7 @@ pub struct Player {
 	pub ground_pound: bool,
 	pub jumping: bool,
 	pub in_air: bool,
+	pub on_wall: bool,
 }
 
 const PLAYER_SIZE: f32 = 0.5;
@@ -71,6 +72,7 @@ fn player_spawn(
 					0.0,
 				))),
 				ActiveEvents::COLLISION_EVENTS,
+				CollidingEntities::default(),
 				Exit(AppState::Game),
 			))
 			.id();
@@ -103,6 +105,7 @@ fn player_spawn(
 					ground_pound: false,
 					jumping: false,
 					in_air: true,
+					on_wall: false,
 				},
 				Sprite {
 					color: Color::rgb(0.25, 0.25, 0.75),
@@ -216,38 +219,47 @@ fn player_on_ground(
 		return;
 	};
 
-	player.in_air = ground_sensor.len() == 0;
+	player.in_air = ground_sensor.is_empty();
+	if !player.in_air {
+		player.remaining_jumps = 1;
+	}
 }
 
 fn player_jumps(
 	mut ev_collision: EventReader<CollisionEvent>,
 	mut q_player: Query<(&mut Player, &mut GravityScale, &Velocity)>,
-	mut q_walljump_sensor: Query<Entity, With<PlayerWalljumpSensor>>,
+	mut q_walljump_sensor: Query<(Entity, &CollidingEntities), With<PlayerWalljumpSensor>>,
 	q_wall: Query<Option<&RestoresJump>>,
 ) {
 	let Ok((mut player, mut gravity, velocity)) = q_player.get_single_mut() else {
 		return;
 	};
-	let Ok(walljump_sensor_entity) = q_walljump_sensor.get_single_mut() else {
+	let Ok((walljump_sensor_entity, walljump_colliding_entities)) = q_walljump_sensor.get_single_mut() else {
 		return;
 	};
 
-	for collision_event in ev_collision.iter() {
-		match collision_event {
-			CollisionEvent::Started(e0, e1, _) => {
-				let wall_entity = match walljump_sensor_entity {
-					e if *e0 == e => e1,
-					e if *e1 == e => e0,
-					_ => continue,
-				};
-				let restores_jump = q_wall.get(*wall_entity).unwrap();
-				if restores_jump.is_some() {
-					player.remaining_jumps = 1;
+	if !player.on_wall {
+		for collision_event in ev_collision.iter() {
+			match collision_event {
+				CollisionEvent::Started(e0, e1, _) => {
+					let wall_entity = match walljump_sensor_entity {
+						e if *e0 == e => e1,
+						e if *e1 == e => e0,
+						_ => continue,
+					};
+					let restores_jump = q_wall.get(*wall_entity).unwrap();
+					if restores_jump.is_some() {
+						player.remaining_jumps = 1;
+					}
 				}
+				_ => {}
 			}
-			_ => {}
 		}
 	}
+
+	player.on_wall = !walljump_colliding_entities.is_empty();
+	println!("{:?}", player.on_wall);
+
 	if player.jumping && velocity.linvel.y < 0.0 {
 		player.jumping = false;
 		gravity.0 = 1.0;

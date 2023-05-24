@@ -50,7 +50,7 @@ fn main() {
 
 	app.insert_resource(ClearColor(Color::WHITE))
 		.insert_resource(TilemapRenderSettings {
-			render_chunk_size: UVec2::new(4096, 4096),
+			render_chunk_size: UVec2::new(256, 256),
 		})
 		.add_plugin(HanabiPlugin)
 		.insert_resource(RapierConfiguration {
@@ -72,7 +72,7 @@ fn main() {
 	#[cfg(debug_assertions)]
 	{
 		app.add_plugin(WorldInspectorPlugin::new());
-		app.add_plugin(RapierDebugRenderPlugin::default());
+		// app.add_plugin(RapierDebugRenderPlugin::default());
 	}
 
 	if DEBUG_SCHEDULE {
