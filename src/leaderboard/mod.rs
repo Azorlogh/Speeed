@@ -36,11 +36,11 @@ impl std::fmt::Display for Score {
 }
 
 #[derive(Resource, Serialize, Deserialize)]
-pub struct Leaderboard(Vec<Vec<Score>>);
+pub struct Leaderboard(pub Vec<Vec<Score>>);
 
 impl Leaderboard {
 	pub fn load() -> Self {
-		Self::try_load().unwrap_or(Leaderboard(vec![vec![]; 6]))
+		Self::try_load().unwrap_or(Leaderboard(vec![vec![]; 100]))
 	}
 
 	pub fn try_load() -> Result<Self, Box<dyn Error>> {

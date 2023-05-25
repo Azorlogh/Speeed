@@ -1,93 +1,107 @@
 use bevy::prelude::*;
+use bevy_ecs_ldtk::{LdtkAsset, LevelSelection, LevelSet};
+use bevy_egui::{egui, EguiContexts};
 
-use crate::states::AppState;
+use crate::{
+	input::Action,
+	leaderboard::{ Leaderboard},
+	states::{AppState, Exit},
+};
 
 pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
 	fn build(&self, app: &mut App) {
+		// app
+		// 	.add_system(exit.in_schedule(OnExit(AppState::Menu)))
 		app.add_system(setup.in_schedule(OnEnter(AppState::Menu)))
-			.add_system(exit.in_schedule(OnExit(AppState::Menu)))
-			.add_system(menu_system.run_if(in_state(AppState::Menu)));
+			.add_system(menu_ui.run_if(in_state(AppState::Menu)));
 	}
 }
 
-#[derive(Component)]
-pub struct PlayButton;
-#[derive(Component)]
-pub struct EditButton;
-
-fn menu_system(
-	mut next_app_state: ResMut<NextState<AppState>>,
-	q_btn_play: Query<&Interaction, With<PlayButton>>,
-	q_btn_edit: Query<&Interaction, With<EditButton>>,
-) {
-	if let Interaction::Clicked = *q_btn_play.single() {
-		next_app_state.set(AppState::Game);
-	}
-	if let Interaction::Clicked = *q_btn_edit.single() {
-		next_app_state.set(AppState::Editor);
-	}
-}
-
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(mut commands: Commands) {
 	let mut camera = Camera2dBundle::default();
 	camera.transform.translation.z = -10000.0;
-	commands.spawn(camera);
-	commands
-		.spawn(NodeBundle {
-			style: Style {
-				size: Size::all(Val::Percent(100.0)),
-				align_items: AlignItems::Center,
-				justify_content: JustifyContent::Center,
-				margin: UiRect::all(Val::Px(50.0)),
-				..default()
-			},
-			..default()
-		})
-		.with_children(|builder| {
-			builder
-				.spawn(NodeBundle {
-					style: Style {
-						size: Size::all(Val::Percent(100.0)),
-						align_items: AlignItems::Center,
-						justify_content: JustifyContent::SpaceAround,
-						flex_direction: FlexDirection::Column,
-						..default()
-					},
-					..default()
-				})
-				.with_children(|builder| {
-					builder
-						.spawn((ButtonBundle::default(), PlayButton))
-						.with_children(|builder| {
-							builder.spawn(TextBundle::from_section(
-								"Play",
-								TextStyle {
-									font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-									font_size: 40.0,
-									color: Color::BLACK,
-								},
-							));
-						});
-					builder
-						.spawn((ButtonBundle::default(), EditButton))
-						.with_children(|builder| {
-							builder.spawn(TextBundle::from_section(
-								"Editor",
-								TextStyle {
-									font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-									font_size: 40.0,
-									color: Color::BLACK,
-								},
-							));
-						});
-				});
-		});
+	commands.spawn((camera, Exit(AppState::Menu)));
 }
 
-fn exit(mut commands: Commands, q_nodes: Query<Entity, Or<(With<Node>, With<Camera>)>>) {
-	for node in q_nodes.iter() {
-		commands.entity(node).despawn();
+fn menu_ui(
+	mut commands: Commands,
+	leaderboard: Res<Leaderboard>,
+	mut egui_ctx: EguiContexts,
+	mut next_app_state: ResMut<NextState<AppState>>,
+	mut level_selection: ResMut<LevelSelection>,
+	q_ldtk_world: Query<(Entity, &Handle<LdtkAsset>), With<LevelSet>>,
+	actions: Res<Input<Action>>,
+	ldtk_asset: Res<Assets<LdtkAsset>>,
+) {
+	let LevelSelection::Index(level) = level_selection.clone() else {
+		panic!("expected level index");
+	};
+
+	let (_, ldtk_handle) = q_ldtk_world.single();
+
+	for i in 0..ldtk_asset.get(ldtk_handle).unwrap().project.levels.len() {
+		egui::Window::new(format!("level-{i}"))
+			.movable(false)
+			.collapsible(false)
+			.resizable(false)
+			.title_bar(false)
+			.show(egui_ctx.ctx_mut(), |ui| {
+				if ui
+					.add(egui::Button::new(format!("{i}")).min_size(egui::Vec2::new(100.0, 100.0)))
+					.clicked()
+				{
+					*level_selection = LevelSelection::Index(i);
+					next_app_state.set(AppState::Game);
+				}
+				ui.label("Best time: ");
+				if let Some(score) = leaderboard.0[i].first() {
+					ui.label(format!("{score}"));
+				} else {
+					ui.label("no score yet");
+				}
+			});
 	}
+
+	// let idx = leaderboard.0[level]
+	// 	.iter()
+	// 	.enumerate()
+	// 	.filter(|(_, v)| score.0 == **v)
+	// 	.map(|(i, _)| i)
+	// 	.last();
+
+	// egui::CentralPanel::default().show(egui_ctx.ctx_mut(), |ui| {
+	// 	ui.vertical_centered(|ui| {
+	// 		let msg = match idx.is_some() {
+	// 			true => "Well played!",
+	// 			false => "Better luck next time :)",
+	// 		};
+	// 		ui.label(msg);
+	// 		ui.heading(&score.0.to_string());
+	// 		ui.group(|ui| {
+	// 			for (i, s) in leaderboard.0[level].iter().enumerate() {
+	// 				let style = ui.style_mut();
+
+	// 				if Some(i) == idx {
+	// 					style.visuals.override_text_color = Some(Color32::RED);
+	// 				} else {
+	// 					style.visuals.override_text_color = None;
+	// 				};
+	// 				ui.label(&s.to_string());
+	// 			}
+	// 		});
+	// 		ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+	// 			if ui.button("Next").clicked() || actions.just_pressed(Action::Jump) {
+	// 				*level_selection = LevelSelection::Index((level + 1) % 7);
+	// 				next_app_state.set(AppState::Game);
+	// 			}
+	// 			if ui.button("Restart").clicked() || actions.just_pressed(Action::GroundPound) {
+	// 				let world = q_ldtk_world.single();
+	// 				commands.entity(world).insert(Respawn);
+	// 				next_app_state.set(AppState::Game);
+	// 			}
+	// 		});
+	// 	});
+	// });
 }

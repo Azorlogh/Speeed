@@ -26,12 +26,13 @@ impl Plugin for LevelPlugin {
 			.add_plugin(rope::RopePlugin)
 			.add_plugin(LdtkPlugin)
 			.configure_set(LdtkSystemSet::ProcessApi.before(PhysicsSet::SyncBackend))
-			.insert_resource(LevelSelection::Index(4))
+			.insert_resource(LevelSelection::Index(3))
 			.insert_resource(LdtkSettings {
 				level_spawn_behavior: LevelSpawnBehavior::UseZeroTranslation,
 				level_background: LevelBackground::Nonexistent,
 				..default()
 			})
+			.add_startup_system(setup_level)
 			.register_ldtk_int_cell::<WallBundle>(1)
 			.register_ldtk_int_cell::<IceBundle>(2)
 			.add_system(spawn_wall_collision::<Wall>)
@@ -41,6 +42,15 @@ impl Plugin for LevelPlugin {
 					.distributive_run_if(in_state(AppState::Game)),
 			);
 	}
+}
+
+fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
+	let ldtk_handle = asset_server.load("levels.ldtk");
+	commands.spawn(LdtkWorldBundle {
+		ldtk_handle,
+		transform: Transform::from_scale(Vec3::splat(1.0 / 16.0)),
+		..default()
+	});
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Component)]
@@ -57,6 +67,9 @@ pub struct Ice;
 pub struct IceBundle {
 	ice: Ice,
 }
+
+#[derive(Component)]
+pub struct WallCollider;
 
 #[derive(Component)]
 pub struct RestoresJump;
@@ -214,7 +227,8 @@ pub fn spawn_wall_collision<T: MapTile>(
 							(wall_rect.bottom + wall_rect.top + 1) as f32 * grid_size as f32 / 2.,
 							0.,
 						))
-						.insert(GlobalTransform::default());
+						.insert(GlobalTransform::default())
+						.insert(WallCollider);
 						if T::restores_jump() {
 							cmds.insert(RestoresJump);
 						}

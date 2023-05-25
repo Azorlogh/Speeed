@@ -16,6 +16,8 @@ pub enum Action {
 	Right,
 	GroundPound,
 	Restart,
+	#[cfg(debug_assertions)]
+	Skip,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -137,5 +139,15 @@ pub fn handle_inputs(
 	{
 		actions.release(Action::Right);
 	}
+	#[cfg(debug_assertions)]
+	{
+		if keys.just_pressed(KeyCode::N) {
+			actions.press(Action::Skip);
+		}
+		if keys.just_released(KeyCode::N) {
+			actions.release(Action::Skip);
+		}
+	}
+
 	*prev_axes = axes.clone();
 }

@@ -1,7 +1,8 @@
 use std::time::Instant;
 
 use bevy::{prelude::*, render::camera::ScalingMode};
-use bevy_ecs_ldtk::{LayerMetadata, LdtkWorldBundle, LevelSelection, LevelSet, Respawn};
+use bevy_ecs_ldtk::{LayerMetadata, LevelSelection, LevelSet, Respawn};
+use bevy_egui::{egui, EguiContexts};
 use bevy_rapier2d::prelude::CollisionEvent;
 
 use crate::{
@@ -20,8 +21,11 @@ impl Plugin for GamePlugin {
 			.add_systems((setup,).in_schedule(OnEnter(AppState::Game)))
 			.add_system(exit.in_schedule(OnExit(AppState::Game)))
 			.add_system(back_to_menu)
-			.add_systems((restart, finish).distributive_run_if(in_state(AppState::Game)))
-			.add_startup_system(setup_level);
+			.add_systems(
+				(restart, finish, timer_label_update).distributive_run_if(in_state(AppState::Game)),
+			);
+		#[cfg(debug_assertions)]
+		app.add_system(skip.run_if(in_state(AppState::Game)));
 	}
 }
 
@@ -34,16 +38,10 @@ fn back_to_menu(mut next_app_state: ResMut<NextState<AppState>>, keys: Res<Input
 	}
 }
 
-fn exit(mut _commands: Commands) {}
+#[derive(Component)]
+pub struct TimerLabel;
 
-fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
-	let ldtk_handle = asset_server.load("levels.ldtk");
-	commands.spawn(LdtkWorldBundle {
-		ldtk_handle,
-		transform: Transform::from_scale(Vec3::splat(1.0 / 16.0)),
-		..default()
-	});
-}
+fn exit(mut _commands: Commands) {}
 
 fn setup(mut commands: Commands) {
 	commands.insert_resource(StartTime(Instant::now()));
@@ -53,6 +51,18 @@ fn setup(mut commands: Commands) {
 	camera.projection.scale = 2f32.powf(4.0);
 	camera.transform.translation.z -= 100.0;
 	commands.spawn((camera, Exit(AppState::Game)));
+}
+
+fn timer_label_update(mut egui_ctx: EguiContexts, start_time: Res<StartTime>) {
+	egui::Window::new("time")
+		.movable(false)
+		.collapsible(false)
+		.resizable(false)
+		.anchor(egui::Align2::CENTER_TOP, egui::Vec2::ZERO)
+		.show(egui_ctx.ctx_mut(), |ui| {
+			let score = Score(start_time.0.elapsed().as_millis() as u64);
+			ui.label(format!("{score:.2}"));
+		});
 }
 
 pub fn grid_to_world(layer: &LayerMetadata, coord: IVec2) -> Vec2 {
@@ -111,6 +121,26 @@ fn restart(
 	if ev_restart.iter().count() > 0 || actions.just_pressed(Action::Restart) {
 		let world = q_ldtk_world.single();
 		commands.entity(world).insert(Respawn);
+		next_state.set(AppState::Game);
+	}
+}
+
+#[cfg(debug_assertions)]
+fn skip(
+	mut commands: Commands,
+	actions: Res<Input<Action>>,
+	mut next_state: ResMut<NextState<AppState>>,
+	q_ldtk_world: Query<Entity, With<LevelSet>>,
+	mut level_selection: ResMut<LevelSelection>,
+) {
+	if actions.just_pressed(Action::Skip) {
+		let LevelSelection::Index(level) = level_selection.clone() else {
+			panic!("expected level index");
+		};
+
+		let world = q_ldtk_world.single();
+		commands.entity(world).insert(Respawn);
+		*level_selection = LevelSelection::Index((level + 1) % 7);
 		next_state.set(AppState::Game);
 	}
 }

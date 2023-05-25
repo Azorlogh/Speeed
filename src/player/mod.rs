@@ -4,7 +4,7 @@ use bevy_rapier2d::prelude::*;
 use crate::{
 	game::Restart,
 	input::{self, Action},
-	level::RestoresJump,
+	level::{RestoresJump, WallCollider},
 	states::{AppState, Exit},
 };
 
@@ -210,6 +210,7 @@ fn player_render(mut q_player: Query<(&Player, &mut Sprite)>) {
 fn player_on_ground(
 	mut q_player: Query<&mut Player>,
 	q_sensor: Query<&CollidingEntities, With<PlayerGroundSensor>>,
+	q_wall: Query<Entity, With<WallCollider>>,
 ) {
 	let Ok(mut player) = q_player.get_single_mut() else {
 		return;
@@ -219,7 +220,7 @@ fn player_on_ground(
 		return;
 	};
 
-	player.in_air = ground_sensor.is_empty();
+	player.in_air = !ground_sensor.iter().any(|e| q_wall.get(e).is_ok());
 	if !player.in_air {
 		player.remaining_jumps = 1;
 	}
@@ -258,7 +259,6 @@ fn player_jumps(
 	}
 
 	player.on_wall = !walljump_colliding_entities.is_empty();
-	println!("{:?}", player.on_wall);
 
 	if player.jumping && velocity.linvel.y < 0.0 {
 		player.jumping = false;

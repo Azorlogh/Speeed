@@ -50,11 +50,16 @@ fn main() {
 
 	app.insert_resource(ClearColor(Color::WHITE))
 		.insert_resource(TilemapRenderSettings {
-			render_chunk_size: UVec2::new(256, 256),
+			render_chunk_size: UVec2::new(128, 128),
 		})
 		.add_plugin(HanabiPlugin)
 		.insert_resource(RapierConfiguration {
 			gravity: -Vec2::Y * 80.0,
+			timestep_mode: TimestepMode::Variable {
+				max_dt: 1.0 / 60.0,
+				time_scale: 1.0,
+				substeps: 1,
+			},
 			..default()
 		})
 		.add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(1.0))
@@ -76,7 +81,7 @@ fn main() {
 	}
 
 	if DEBUG_SCHEDULE {
-		bevy_mod_debugdump::print_main_schedule(&mut app);
+		// bevy_mod_debugdump::print_main_schedule(&mut app);
 	}
 
 	app.run();
