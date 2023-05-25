@@ -8,7 +8,7 @@ use bevy_hanabi::{
 };
 use bevy_rapier2d::prelude::*;
 
-use super::{update_level_size, LevelSize};
+use super::LevelSize;
 use crate::{
 	game::grid_to_world,
 	player::{player_controls, Player},
@@ -21,7 +21,7 @@ impl Plugin for PortalPlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
 		app.add_event::<SpawnPortal>().add_systems(
 			(
-				spawn_portal.after(update_level_size),
+				spawn_portal,
 				portal_spawn,
 				update_portal.after(player_controls),
 			)
@@ -32,7 +32,7 @@ impl Plugin for PortalPlugin {
 
 fn spawn_portal(
 	mut ev_spawn_portal: EventWriter<SpawnPortal>,
-	level_size: Res<LevelSize>,
+	level_size: LevelSize,
 	q_spawned_ldtk_entities: Query<&ldtk::EntityInstance, Added<ldtk::EntityInstance>>,
 ) {
 	for instance in q_spawned_ldtk_entities
@@ -168,6 +168,8 @@ fn portal_spawn(
 }
 
 fn update_portal(
+	asset_server: Res<AssetServer>,
+	audio: Res<Audio>,
 	mut ev_collision: EventReader<CollisionEvent>,
 	mut q_player: Query<(Entity, &mut Player, &mut Transform, &mut Velocity)>,
 	q_portal: Query<(Entity, &Transform, &Portal), Without<Player>>,
@@ -186,6 +188,10 @@ fn update_portal(
 					if let Some((_, portal_tr, portal)) =
 						[e0, e1].iter().find_map(|e| q_portal.get(**e).ok())
 					{
+						audio.play_with_settings(
+							asset_server.load("sounds/portal.ogg"),
+							PlaybackSettings::ONCE.with_volume(0.5),
+						);
 						let offset =
 							player_tr.translation.truncate() - portal_tr.translation.truncate();
 

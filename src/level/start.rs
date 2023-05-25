@@ -9,7 +9,7 @@ pub struct Start;
 
 pub fn spawn_start(
 	mut commands: Commands,
-	level_size: Res<LevelSize>,
+	level_size: LevelSize,
 	q_spawned_ldtk_entities: Query<(Entity, &ldtk::EntityInstance), Added<ldtk::EntityInstance>>,
 	mut ev_spawn_player: EventWriter<SpawnPlayer>,
 ) {

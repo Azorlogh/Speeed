@@ -33,7 +33,7 @@ impl Default for FinishBundle {
 pub fn spawn_finish(
 	mut commands: Commands,
 	mut effects: ResMut<Assets<EffectAsset>>,
-	level_size: Res<LevelSize>,
+	level_size: LevelSize,
 	q_spawned_ldtk_entities: Query<&ldtk::EntityInstance, Added<ldtk::EntityInstance>>,
 ) {
 	for finish in q_spawned_ldtk_entities

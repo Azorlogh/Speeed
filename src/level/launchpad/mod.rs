@@ -8,7 +8,7 @@ use bevy_hanabi::{
 };
 use bevy_rapier2d::prelude::*;
 
-use super::{update_level_size, LevelSize};
+use super::LevelSize;
 use crate::{
 	game::grid_to_world,
 	player::Player,
@@ -20,8 +20,7 @@ pub struct LaunchpadPlugin;
 impl Plugin for LaunchpadPlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
 		app.add_systems(
-			(spawn_launchpad.after(update_level_size), update_launchpad)
-				.distributive_run_if(in_state(AppState::Game)),
+			(spawn_launchpad, update_launchpad).distributive_run_if(in_state(AppState::Game)),
 		);
 	}
 }
@@ -29,7 +28,7 @@ impl Plugin for LaunchpadPlugin {
 fn spawn_launchpad(
 	mut commands: Commands,
 	mut effects: ResMut<Assets<EffectAsset>>,
-	level_size: Res<LevelSize>,
+	level_size: LevelSize,
 	q_spawned_ldtk_entities: Query<&ldtk::EntityInstance, Added<ldtk::EntityInstance>>,
 ) {
 	for instance in q_spawned_ldtk_entities
@@ -107,6 +106,8 @@ impl LaunchpadBundle {
 }
 
 fn update_launchpad(
+	asset_server: Res<AssetServer>,
+	audio: Res<Audio>,
 	mut q_player: Query<(&Transform, &mut Velocity), With<Player>>,
 	q_launchpad: Query<(&Transform, &Launchpad), Without<Player>>,
 ) {
@@ -121,6 +122,10 @@ fn update_launchpad(
 			.distance(launchpad_tr.translation.truncate())
 			<= LAUNCHPAD_SIZE
 		{
+			audio.play_with_settings(
+				asset_server.load("sounds/launchpad.ogg"),
+				PlaybackSettings::ONCE.with_volume(0.5),
+			);
 			player_vel.linvel = launchpad.vel;
 		}
 	}

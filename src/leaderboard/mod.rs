@@ -1,7 +1,7 @@
 use std::{error::Error, time::Duration};
 
 use bevy::prelude::*;
-use bevy_ecs_ldtk::{LevelSelection, LevelSet, Respawn};
+use bevy_ecs_ldtk::{LdtkAsset, LevelSelection, LevelSet, Respawn};
 use bevy_egui::{
 	egui::{self, Align, Color32, Layout},
 	EguiContexts,
@@ -89,8 +89,9 @@ fn leaderboard_ui(
 	mut egui_ctx: EguiContexts,
 	mut next_app_state: ResMut<NextState<AppState>>,
 	mut level_selection: ResMut<LevelSelection>,
-	q_ldtk_world: Query<Entity, With<LevelSet>>,
+	q_ldtk_world: Query<(Entity, &Handle<LdtkAsset>), With<LevelSet>>,
 	actions: Res<Input<Action>>,
+	ldtk_asset: Res<Assets<LdtkAsset>>,
 ) {
 	let LevelSelection::Index(level) = level_selection.clone() else {
 		panic!("expected level index");
@@ -102,6 +103,10 @@ fn leaderboard_ui(
 		.filter(|(_, v)| score.0 == **v)
 		.map(|(i, _)| i)
 		.last();
+
+	let (world_entity, ldtk_handle) = q_ldtk_world.single();
+
+	let nb_levels = ldtk_asset.get(ldtk_handle).unwrap().project.levels.len();
 
 	egui::CentralPanel::default().show(egui_ctx.ctx_mut(), |ui| {
 		ui.vertical_centered(|ui| {
@@ -125,12 +130,11 @@ fn leaderboard_ui(
 			});
 			ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
 				if ui.button("Next").clicked() || actions.just_pressed(Action::Jump) {
-					*level_selection = LevelSelection::Index((level + 1) % 7);
+					*level_selection = LevelSelection::Index((level + 1) % nb_levels);
 					next_app_state.set(AppState::Game);
 				}
 				if ui.button("Restart").clicked() || actions.just_pressed(Action::GroundPound) {
-					let world = q_ldtk_world.single();
-					commands.entity(world).insert(Respawn);
+					commands.entity(world_entity).insert(Respawn);
 					next_app_state.set(AppState::Game);
 				}
 			});

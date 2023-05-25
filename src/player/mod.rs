@@ -4,7 +4,7 @@ use bevy_rapier2d::prelude::*;
 use crate::{
 	game::Restart,
 	input::{self, Action},
-	level::{RestoresJump, WallCollider},
+	level::RestoresJump,
 	states::{AppState, Exit},
 };
 
@@ -64,14 +64,10 @@ fn player_spawn(
 		let walljump_sensor = commands
 			.spawn((
 				PlayerWalljumpSensor,
-				Collider::cuboid(PLAYER_SIZE / 2.0 * 1.4, PLAYER_SIZE / 2.0 * 1.0),
+				Collider::cuboid(PLAYER_SIZE / 2.0 * 1.4, PLAYER_SIZE / 2.0 * 0.8),
 				ColliderMassProperties::Density(0.0),
 				Sensor,
-				TransformBundle::from(Transform::from_translation(Vec3::new(
-					0.0,
-					-PLAYER_SIZE * 0.2,
-					0.0,
-				))),
+				TransformBundle::from(Transform::from_translation(Vec3::new(0.0, 0.0, 0.0))),
 				ActiveEvents::COLLISION_EVENTS,
 				CollidingEntities::default(),
 				Exit(AppState::Game),
@@ -147,6 +143,8 @@ fn player_spawn(
 }
 
 pub fn player_controls(
+	asset_server: Res<AssetServer>,
+	audio: Res<Audio>,
 	action: Res<Input<Action>>,
 	time: Res<Time>,
 	mut q_player: Query<(
@@ -162,6 +160,10 @@ pub fn player_controls(
 	};
 
 	if action.just_pressed(Action::Jump) && player.remaining_jumps > 0 {
+		audio.play_with_settings(
+			asset_server.load("sounds/jump.ogg"),
+			PlaybackSettings::ONCE.with_volume(0.5),
+		);
 		velocity.linvel.y = velocity.linvel.y.max(player.jump_vel);
 		player.remaining_jumps -= 1;
 		player.jumping = true;
@@ -173,6 +175,10 @@ pub fn player_controls(
 	}
 
 	if action.just_pressed(Action::GroundPound) {
+		audio.play_with_settings(
+			asset_server.load("sounds/ground_pound.ogg"),
+			PlaybackSettings::ONCE.with_volume(0.5),
+		);
 		velocity.linvel.y = -player.jump_vel * 2.0;
 		player.ground_pound = true;
 	}
@@ -214,16 +220,16 @@ fn player_render(mut q_player: Query<(&Player, &mut Sprite)>) {
 		return;
 	};
 	if player.remaining_jumps != 0 {
-		sprite.color = Color::RED;
-	} else {
 		sprite.color = Color::WHITE * 2.0;
+	} else {
+		sprite.color = Color::RED;
 	}
 }
 
 fn player_on_ground(
 	mut q_player: Query<&mut Player>,
 	q_sensor: Query<&CollidingEntities, With<PlayerGroundSensor>>,
-	q_wall: Query<Entity, With<WallCollider>>,
+	q_wall: Query<Entity, With<RestoresJump>>,
 ) {
 	let Ok(mut player) = q_player.get_single_mut() else {
 		return;
@@ -261,6 +267,7 @@ fn player_jumps(
 						e if *e1 == e => e0,
 						_ => continue,
 					};
+					println!("collision started!");
 					let restores_jump = q_wall.get(*wall_entity).unwrap();
 					if restores_jump.is_some() {
 						player.remaining_jumps = 1;

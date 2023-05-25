@@ -5,7 +5,7 @@ use bevy::{
 	prelude::*,
 	render::{camera::ScalingMode, view::ColorGrading},
 };
-use bevy_ecs_ldtk::{LayerMetadata, LevelSelection, LevelSet, Respawn};
+use bevy_ecs_ldtk::{ldtk, prelude::LdtkFields, LdtkLevel, LevelSelection, LevelSet, Respawn};
 use bevy_egui::{egui, EguiContexts};
 use bevy_rapier2d::prelude::CollisionEvent;
 
@@ -25,9 +25,7 @@ impl Plugin for GamePlugin {
 			.add_systems((setup,).in_schedule(OnEnter(AppState::Game)))
 			.add_system(exit.in_schedule(OnExit(AppState::Game)))
 			.add_system(back_to_menu)
-			.add_systems(
-				(restart, finish, timer_label_update).distributive_run_if(in_state(AppState::Game)),
-			);
+			.add_systems((restart, finish, ui).distributive_run_if(in_state(AppState::Game)));
 		#[cfg(debug_assertions)]
 		app.add_system(skip.run_if(in_state(AppState::Game)));
 	}
@@ -70,7 +68,12 @@ fn setup(mut commands: Commands) {
 	));
 }
 
-fn timer_label_update(mut egui_ctx: EguiContexts, start_time: Res<StartTime>) {
+fn ui(
+	mut egui_ctx: EguiContexts,
+	start_time: Res<StartTime>,
+	ldtk_levels: Res<Assets<LdtkLevel>>,
+	q_level: Query<&Handle<LdtkLevel>>,
+) {
 	egui::Window::new("time")
 		.movable(false)
 		.collapsible(false)
@@ -80,12 +83,24 @@ fn timer_label_update(mut egui_ctx: EguiContexts, start_time: Res<StartTime>) {
 			let score = Score(start_time.0.elapsed().as_millis() as u64);
 			ui.label(format!("{score:.2}"));
 		});
+
+	if let Ok(level) = q_level.get_single().map(|h| ldtk_levels.get(h).unwrap()) {
+		egui::Window::new("level-info")
+			.movable(false)
+			.collapsible(false)
+			.resizable(false)
+			.title_bar(false)
+			.anchor(egui::Align2::RIGHT_TOP, egui::Vec2::ZERO)
+			.show(egui_ctx.ctx_mut(), |ui| {
+				ui.label(format!("{}", level.level.get_string_field("name").unwrap()));
+			});
+	}
 }
 
 pub fn grid_to_world(level_size: &LevelSize, coord: IVec2) -> Vec2 {
 	Vec2::new(
 		coord.x as f32 + 0.5,
-		level_size.height as f32 - coord.y as f32 - 0.5,
+		level_size.get().y as f32 - coord.y as f32 - 0.5,
 	)
 }
 

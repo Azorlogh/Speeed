@@ -6,6 +6,7 @@ pub mod start;
 mod text;
 
 use bevy::{
+	ecs::system::SystemParam,
 	prelude::*,
 	utils::{HashMap, HashSet},
 };
@@ -26,11 +27,7 @@ impl Plugin for LevelPlugin {
 			.add_plugin(rope::RopePlugin)
 			.add_plugin(LdtkPlugin)
 			.configure_set(LdtkSystemSet::ProcessApi.before(PhysicsSet::SyncBackend))
-			.insert_resource(LevelSize {
-				width: 0,
-				height: 0,
-			})
-			.insert_resource(LevelSelection::Index(2))
+			.insert_resource(LevelSelection::Index(1))
 			.insert_resource(LdtkSettings {
 				level_spawn_behavior: LevelSpawnBehavior::UseZeroTranslation,
 				level_background: LevelBackground::Nonexistent,
@@ -42,7 +39,6 @@ impl Plugin for LevelPlugin {
 			.register_ldtk_int_cell::<BackgroundLightBundle>(4)
 			.add_system(spawn_wall_collision::<Wall>)
 			.add_system(spawn_wall_collision::<Ice>)
-			.add_system(update_level_size)
 			.add_system(background_light_spawn)
 			.add_systems(
 				(start::spawn_start, finish::spawn_finish)
@@ -60,23 +56,40 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
 	});
 }
 
-fn update_level_size(
-	mut level_size: ResMut<LevelSize>,
-	q_layer: Query<&LayerMetadata, With<LayerMetadata>>,
-) {
-	if let Some(layer) = q_layer.iter().next() {
-		*level_size = LevelSize {
-			width: layer.c_wid as u32,
-			height: layer.c_hei as u32,
-		};
+/// Helper to get the size of the level
+/// It works because we only have 1 level at a time
+#[derive(SystemParam)]
+pub struct LevelSize<'w, 's> {
+	layer: Query<'w, 's, &'static LayerMetadata>,
+}
+impl<'w, 's> LevelSize<'w, 's> {
+	pub fn get(&self) -> UVec2 {
+		let layer = self
+			.layer
+			.iter()
+			.next()
+			.expect("couldn't get level size: no level loaded");
+		UVec2::new(layer.c_wid as u32, layer.c_hei as u32)
 	}
 }
 
-#[derive(Clone, Copy, Default, Resource)]
-pub struct LevelSize {
-	pub width: u32,
-	pub height: u32,
-}
+// fn update_level_size(
+// 	mut level_size: ResMut<LevelSize>,
+// 	q_layer: Query<&LayerMetadata, With<LayerMetadata>>,
+// ) {
+// 	if let Some(layer) = q_layer.iter().next() {
+// 		*level_size = LevelSize {
+// 			width: layer.c_wid as u32,
+// 			height: layer.c_hei as u32,
+// 		};
+// 	}
+// }
+
+// #[derive(Clone, Copy, Default, Resource)]
+// pub struct LevelSize {
+// 	pub width: u32,
+// 	pub height: u32,
+// }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Component)]
 pub struct Wall;
@@ -273,9 +286,9 @@ pub struct BackgroundLightBundle {
 }
 fn background_light_spawn(
 	mut commands: Commands,
-	q_new_lights: Query<(Entity, &GridCoords, &BackgroundLight)>,
+	q_new_lights: Query<(Entity, &GridCoords), With<BackgroundLight>>,
 ) {
-	for (e, coords, light) in &q_new_lights {
+	for (e, coords) in &q_new_lights {
 		commands.entity(e).insert(SpriteBundle {
 			sprite: Sprite {
 				color: Color::rgb(5.0, 5.0, 2.0),

@@ -78,7 +78,7 @@ fn main() {
 		.add_plugin(game::GamePlugin)
 		.add_plugin(editor::EditorPlugin)
 		.add_plugin(leaderboard::LeaderboardPlugin)
-		.add_startup_system(configure_egui);
+		.add_startup_systems((configure_egui, setup_music));
 
 	#[cfg(debug_assertions)]
 	{
@@ -93,9 +93,21 @@ fn main() {
 	app.run();
 }
 
+fn setup_music(asset_server: Res<AssetServer>, audio: Res<Audio>) {
+	let music = asset_server.load("sounds/music.ogg");
+	audio.play_with_settings(
+		music,
+		PlaybackSettings {
+			repeat: true,
+			volume: 0.5,
+			speed: 1.0,
+		},
+	);
+}
+
 fn configure_egui(mut contexts: EguiContexts) {
 	let ctx = contexts.ctx_mut();
-	ctx.set_visuals(egui::Visuals::light());
+	// ctx.set_visuals(egui::Visuals::light());
 	let mut fonts = FontDefinitions::default();
 	// normal text
 	{

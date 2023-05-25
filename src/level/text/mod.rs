@@ -1,12 +1,9 @@
 use std::error::Error;
 
 use bevy::prelude::*;
-use bevy_ecs_ldtk::{
-	ldtk::{self, ldtk_fields::LdtkFields},
-	LayerMetadata,
-};
+use bevy_ecs_ldtk::ldtk::{self, ldtk_fields::LdtkFields};
 
-use super::{update_level_size, LevelSize};
+use super::LevelSize;
 use crate::{
 	game::grid_to_world,
 	states::{AppState, Exit},
@@ -16,18 +13,14 @@ pub struct TextPlugin;
 
 impl Plugin for TextPlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
-		app.add_system(
-			spawn_text
-				.after(update_level_size)
-				.run_if(in_state(AppState::Game)),
-		);
+		app.add_system(spawn_text.run_if(in_state(AppState::Game)));
 	}
 }
 
 fn spawn_text(
 	mut commands: Commands,
 	asset_server: Res<AssetServer>,
-	level_size: Res<LevelSize>,
+	level_size: LevelSize,
 	q_spawned_ldtk_entities: Query<&ldtk::EntityInstance, Added<ldtk::EntityInstance>>,
 ) {
 	for instance in q_spawned_ldtk_entities
@@ -46,7 +39,7 @@ fn spawn_text(
 						TextStyle {
 							font: asset_server.load("fonts/FiraSans-Bold.ttf"),
 							font_size: 50.0,
-							color: Color::BLACK,
+							color: Color::WHITE,
 							..default()
 						},
 					)

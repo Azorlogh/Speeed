@@ -4,7 +4,7 @@ use bevy::{prelude::*, render::texture::DEFAULT_IMAGE_HANDLE};
 use bevy_ecs_ldtk::ldtk::{self, ldtk_fields::LdtkFields};
 use bevy_rapier2d::prelude::*;
 
-use super::{update_level_size, LevelSize};
+use super::LevelSize;
 use crate::{
 	game::grid_to_world,
 	input::Action,
@@ -20,7 +20,7 @@ impl Plugin for RopePlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
 		app.add_event::<SpawnRope>().add_systems(
 			(
-				spawn_rope.after(update_level_size),
+				spawn_rope,
 				rope_spawn,
 				update_rope,
 				swing_controls.after(player_controls),
@@ -32,7 +32,7 @@ impl Plugin for RopePlugin {
 
 fn spawn_rope(
 	mut ev_spawn_rope: EventWriter<SpawnRope>,
-	level_size: Res<LevelSize>,
+	level_size: LevelSize,
 	q_spawned_ldtk_entities: Query<&ldtk::EntityInstance, Added<ldtk::EntityInstance>>,
 ) {
 	for instance in q_spawned_ldtk_entities
@@ -104,7 +104,7 @@ fn rope_spawn(mut commands: Commands, mut ev_spawn_rope: EventReader<SpawnRope>)
 						(spawn_rope.pos - (idx as f32 * Vec2::Y * SEGMENT_SIZE)).extend(0.0),
 					)),
 					Sprite {
-						color: Color::rgb(0.25, 0.25, 0.75),
+						color: Color::rgb(0.25, 0.25, 0.75) * 3.0,
 						custom_size: Some(Vec2::new(0.2, SEGMENT_SIZE)),
 						..default()
 					},
