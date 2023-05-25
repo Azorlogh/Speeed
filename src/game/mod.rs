@@ -1,6 +1,10 @@
 use std::time::Instant;
 
-use bevy::{prelude::*, render::camera::ScalingMode};
+use bevy::{
+	core_pipeline::{bloom::BloomSettings, tonemapping::Tonemapping},
+	prelude::*,
+	render::camera::ScalingMode,
+};
 use bevy_ecs_ldtk::{LayerMetadata, LevelSelection, LevelSet, Respawn};
 use bevy_egui::{egui, EguiContexts};
 use bevy_rapier2d::prelude::CollisionEvent;
@@ -50,6 +54,8 @@ fn setup(mut commands: Commands) {
 	camera.projection.scaling_mode = ScalingMode::FixedVertical(2.0);
 	camera.projection.scale = 2f32.powf(4.0);
 	camera.transform.translation.z -= 100.0;
+	camera.camera.hdr = true;
+	camera.tonemapping = Tonemapping::TonyMcMapface;
 	commands.spawn((camera, Exit(AppState::Game)));
 }
 
