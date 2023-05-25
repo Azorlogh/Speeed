@@ -27,6 +27,10 @@ pub struct Score(pub u64);
 
 impl std::fmt::Display for Score {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		// let millis = self.0%1000;
+		// let seconds = (self.0/1000);
+		// let minutes = self.0
+		// write!(f, "{}:{}.{}", duration.as_secs() / 60)
 		write!(
 			f,
 			"{}",

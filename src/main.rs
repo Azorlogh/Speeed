@@ -45,7 +45,13 @@ fn main() {
 				}),
 		);
 	} else {
-		app.add_plugins(DefaultPlugins);
+		app.add_plugins(
+			DefaultPlugins
+				.build()
+				.add_before::<bevy::asset::AssetPlugin, _>(
+					bevy_embedded_assets::EmbeddedAssetPlugin,
+				),
+		);
 	}
 
 	app.insert_resource(ClearColor(Color::WHITE))
@@ -58,7 +64,7 @@ fn main() {
 			timestep_mode: TimestepMode::Variable {
 				max_dt: 1.0 / 60.0,
 				time_scale: 1.0,
-				substeps: 1,
+				substeps: 4,
 			},
 			..default()
 		})

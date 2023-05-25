@@ -38,6 +38,7 @@ pub struct Player {
 	pub jumping: bool,
 	pub in_air: bool,
 	pub on_wall: bool,
+	pub swapped: bool, // whether the left&right direction are swapped (useful for portals)
 }
 
 const PLAYER_SIZE: f32 = 0.5;
@@ -106,6 +107,7 @@ fn player_spawn(
 					jumping: false,
 					in_air: true,
 					on_wall: false,
+					swapped: false,
 				},
 				Sprite {
 					color: Color::rgb(0.25, 0.25, 0.75),
@@ -176,18 +178,29 @@ pub fn player_controls(
 	}
 
 	ext_force.force = Vec2::ZERO;
-	if action.pressed(Action::Left) && velocity.linvel.x > -PLAYER_MAX_SPEED {
+	if (action.pressed(Action::Left) && !player.swapped
+		|| action.pressed(Action::Right) && player.swapped)
+		&& velocity.linvel.x > -PLAYER_MAX_SPEED
+	{
 		if velocity.linvel.x > -PLAYER_MAX_SPEED {
 			velocity.linvel.x =
 				(velocity.linvel.x - player.speed * time.delta_seconds()).max(-PLAYER_MAX_SPEED);
 		}
 	}
-	if action.pressed(Action::Right) && velocity.linvel.x < PLAYER_MAX_SPEED {
+	if (action.pressed(Action::Right) && !player.swapped
+		|| action.pressed(Action::Left) && player.swapped)
+		&& velocity.linvel.x < PLAYER_MAX_SPEED
+	{
 		if velocity.linvel.x < PLAYER_MAX_SPEED {
 			velocity.linvel.x =
 				(velocity.linvel.x + player.speed * time.delta_seconds()).min(PLAYER_MAX_SPEED);
 		}
 	}
+
+	if action.just_released(Action::Left) || action.just_released(Action::Right) {
+		player.swapped = false;
+	}
+
 	if !action.pressed(Action::Left) && !action.pressed(Action::Right) {
 		// prevent sliding when the user is not moving sideways
 		friction.coefficient = 1.0;

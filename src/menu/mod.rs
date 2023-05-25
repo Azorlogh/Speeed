@@ -4,7 +4,7 @@ use bevy_egui::{egui, EguiContexts};
 
 use crate::{
 	input::Action,
-	leaderboard::{ Leaderboard},
+	leaderboard::Leaderboard,
 	states::{AppState, Exit},
 };
 
