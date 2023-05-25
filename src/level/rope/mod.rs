@@ -1,12 +1,10 @@
 use std::error::Error;
 
 use bevy::{prelude::*, render::texture::DEFAULT_IMAGE_HANDLE};
-use bevy_ecs_ldtk::{
-	ldtk::{self, ldtk_fields::LdtkFields},
-	LayerMetadata,
-};
+use bevy_ecs_ldtk::ldtk::{self, ldtk_fields::LdtkFields};
 use bevy_rapier2d::prelude::*;
 
+use super::{update_level_size, LevelSize};
 use crate::{
 	game::grid_to_world,
 	input::Action,
@@ -22,7 +20,7 @@ impl Plugin for RopePlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
 		app.add_event::<SpawnRope>().add_systems(
 			(
-				spawn_rope,
+				spawn_rope.after(update_level_size),
 				rope_spawn,
 				update_rope,
 				swing_controls.after(player_controls),
@@ -34,7 +32,7 @@ impl Plugin for RopePlugin {
 
 fn spawn_rope(
 	mut ev_spawn_rope: EventWriter<SpawnRope>,
-	q_layer: Query<&LayerMetadata>,
+	level_size: Res<LevelSize>,
 	q_spawned_ldtk_entities: Query<&ldtk::EntityInstance, Added<ldtk::EntityInstance>>,
 ) {
 	for instance in q_spawned_ldtk_entities
@@ -43,7 +41,7 @@ fn spawn_rope(
 	{
 		if let Err(e) = (|| {
 			let length = *instance.get_int_field("length")? as u32;
-			let pos = grid_to_world(q_layer.single(), instance.grid);
+			let pos = grid_to_world(&level_size, instance.grid);
 
 			ev_spawn_rope.send(SpawnRope { pos, length });
 			Result::<_, Box<dyn Error>>::Ok(())

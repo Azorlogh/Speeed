@@ -54,7 +54,7 @@ fn main() {
 		);
 	}
 
-	app.insert_resource(ClearColor(Color::WHITE))
+	app.insert_resource(ClearColor(Color::BLACK))
 		.insert_resource(TilemapRenderSettings {
 			render_chunk_size: UVec2::new(128, 128),
 		})

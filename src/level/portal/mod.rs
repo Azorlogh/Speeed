@@ -1,16 +1,14 @@
 use std::error::Error;
 
 use bevy::prelude::*;
-use bevy_ecs_ldtk::{
-	ldtk::{self, ldtk_fields::LdtkFields},
-	LayerMetadata,
-};
+use bevy_ecs_ldtk::ldtk::{self, ldtk_fields::LdtkFields};
 use bevy_hanabi::{
 	AccelModifier, ColorOverLifetimeModifier, EffectAsset, Gradient, InitLifetimeModifier,
 	InitPositionCircleModifier, ParticleEffect, ShapeDimension, SizeOverLifetimeModifier, Spawner,
 };
 use bevy_rapier2d::prelude::*;
 
+use super::{update_level_size, LevelSize};
 use crate::{
 	game::grid_to_world,
 	player::{player_controls, Player},
@@ -23,7 +21,7 @@ impl Plugin for PortalPlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
 		app.add_event::<SpawnPortal>().add_systems(
 			(
-				spawn_portal,
+				spawn_portal.after(update_level_size),
 				portal_spawn,
 				update_portal.after(player_controls),
 			)
@@ -34,7 +32,7 @@ impl Plugin for PortalPlugin {
 
 fn spawn_portal(
 	mut ev_spawn_portal: EventWriter<SpawnPortal>,
-	q_layer: Query<&LayerMetadata>,
+	level_size: Res<LevelSize>,
 	q_spawned_ldtk_entities: Query<&ldtk::EntityInstance, Added<ldtk::EntityInstance>>,
 ) {
 	for instance in q_spawned_ldtk_entities
@@ -42,11 +40,11 @@ fn spawn_portal(
 		.filter(|e| e.identifier == "Portal")
 	{
 		if let Err(e) = (|| {
-			let dest = grid_to_world(q_layer.single(), *instance.get_point_field("destination")?);
+			let dest = grid_to_world(&level_size, *instance.get_point_field("destination")?);
 			let angle_in = instance.get_float_field("angle_in")?.to_radians();
 			let angle_out = instance.get_float_field("angle_out")?.to_radians();
 			let color = *instance.get_color_field("color")?;
-			let pos = grid_to_world(q_layer.single(), instance.grid);
+			let pos = grid_to_world(&level_size, instance.grid);
 			let delta = dest - pos;
 
 			ev_spawn_portal.send(SpawnPortal {

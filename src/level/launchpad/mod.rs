@@ -1,16 +1,14 @@
 use std::error::Error;
 
 use bevy::prelude::*;
-use bevy_ecs_ldtk::{
-	ldtk::{self, ldtk_fields::LdtkFields},
-	LayerMetadata,
-};
+use bevy_ecs_ldtk::ldtk::{self, ldtk_fields::LdtkFields};
 use bevy_hanabi::{
 	AccelModifier, ColorOverLifetimeModifier, EffectAsset, Gradient, InitLifetimeModifier,
 	InitPositionCircleModifier, ParticleEffect, ShapeDimension, SizeOverLifetimeModifier, Spawner,
 };
 use bevy_rapier2d::prelude::*;
 
+use super::{update_level_size, LevelSize};
 use crate::{
 	game::grid_to_world,
 	player::Player,
@@ -22,7 +20,8 @@ pub struct LaunchpadPlugin;
 impl Plugin for LaunchpadPlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
 		app.add_systems(
-			(spawn_launchpad, update_launchpad).distributive_run_if(in_state(AppState::Game)),
+			(spawn_launchpad.after(update_level_size), update_launchpad)
+				.distributive_run_if(in_state(AppState::Game)),
 		);
 	}
 }
@@ -30,7 +29,7 @@ impl Plugin for LaunchpadPlugin {
 fn spawn_launchpad(
 	mut commands: Commands,
 	mut effects: ResMut<Assets<EffectAsset>>,
-	q_layer: Query<&LayerMetadata>,
+	level_size: Res<LevelSize>,
 	q_spawned_ldtk_entities: Query<&ldtk::EntityInstance, Added<ldtk::EntityInstance>>,
 ) {
 	for instance in q_spawned_ldtk_entities
@@ -42,7 +41,7 @@ fn spawn_launchpad(
 			let y = *instance.get_float_field("y")?;
 			commands.spawn((
 				LaunchpadBundle::new(
-					grid_to_world(q_layer.single(), instance.grid),
+					grid_to_world(&level_size, instance.grid),
 					Vec2::new(x, y),
 					&mut effects,
 				),

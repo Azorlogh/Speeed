@@ -3,6 +3,7 @@ use bevy_ecs_ldtk::prelude::*;
 use bevy_hanabi::prelude::*;
 use bevy_rapier2d::prelude::Collider;
 
+use super::LevelSize;
 use crate::{
 	game::grid_to_world,
 	states::{AppState, Exit},
@@ -32,7 +33,7 @@ impl Default for FinishBundle {
 pub fn spawn_finish(
 	mut commands: Commands,
 	mut effects: ResMut<Assets<EffectAsset>>,
-	q_layer: Query<&LayerMetadata>,
+	level_size: Res<LevelSize>,
 	q_spawned_ldtk_entities: Query<&ldtk::EntityInstance, Added<ldtk::EntityInstance>>,
 ) {
 	for finish in q_spawned_ldtk_entities
@@ -79,7 +80,7 @@ pub fn spawn_finish(
 			.insert((
 				FinishBundle {
 					spatial: SpatialBundle::from_transform(Transform::from_translation(
-						grid_to_world(q_layer.single(), finish.grid).extend(0.0),
+						grid_to_world(&level_size, finish.grid).extend(0.0),
 					)),
 					..default()
 				},

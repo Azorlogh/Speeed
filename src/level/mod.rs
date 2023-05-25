@@ -26,7 +26,11 @@ impl Plugin for LevelPlugin {
 			.add_plugin(rope::RopePlugin)
 			.add_plugin(LdtkPlugin)
 			.configure_set(LdtkSystemSet::ProcessApi.before(PhysicsSet::SyncBackend))
-			.insert_resource(LevelSelection::Index(3))
+			.insert_resource(LevelSize {
+				width: 0,
+				height: 0,
+			})
+			.insert_resource(LevelSelection::Index(2))
 			.insert_resource(LdtkSettings {
 				level_spawn_behavior: LevelSpawnBehavior::UseZeroTranslation,
 				level_background: LevelBackground::Nonexistent,
@@ -35,8 +39,11 @@ impl Plugin for LevelPlugin {
 			.add_startup_system(setup_level)
 			.register_ldtk_int_cell::<WallBundle>(1)
 			.register_ldtk_int_cell::<IceBundle>(2)
+			.register_ldtk_int_cell::<BackgroundLightBundle>(4)
 			.add_system(spawn_wall_collision::<Wall>)
 			.add_system(spawn_wall_collision::<Ice>)
+			.add_system(update_level_size)
+			.add_system(background_light_spawn)
 			.add_systems(
 				(start::spawn_start, finish::spawn_finish)
 					.distributive_run_if(in_state(AppState::Game)),
@@ -51,6 +58,24 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
 		transform: Transform::from_scale(Vec3::splat(1.0 / 16.0)),
 		..default()
 	});
+}
+
+fn update_level_size(
+	mut level_size: ResMut<LevelSize>,
+	q_layer: Query<&LayerMetadata, With<LayerMetadata>>,
+) {
+	if let Some(layer) = q_layer.iter().next() {
+		*level_size = LevelSize {
+			width: layer.c_wid as u32,
+			height: layer.c_hei as u32,
+		};
+	}
+}
+
+#[derive(Clone, Copy, Default, Resource)]
+pub struct LevelSize {
+	pub width: u32,
+	pub height: u32,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Component)]
@@ -235,6 +260,33 @@ pub fn spawn_wall_collision<T: MapTile>(
 					}
 				});
 			}
+		});
+	}
+}
+
+/// Lights
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Component)]
+pub struct BackgroundLight;
+#[derive(Clone, Debug, Default, Bundle, LdtkIntCell)]
+pub struct BackgroundLightBundle {
+	bg_light: BackgroundLight,
+}
+fn background_light_spawn(
+	mut commands: Commands,
+	q_new_lights: Query<(Entity, &GridCoords, &BackgroundLight)>,
+) {
+	for (e, coords, light) in &q_new_lights {
+		commands.entity(e).insert(SpriteBundle {
+			sprite: Sprite {
+				color: Color::rgb(5.0, 5.0, 2.0),
+				custom_size: Some(Vec2::ONE),
+				..default()
+			},
+			transform: Transform::from_translation(
+				IVec2::from(*coords).as_vec2().extend(10.0) * 16.0,
+			)
+			.with_scale(Vec3::splat(16.0)),
+			..default()
 		});
 	}
 }

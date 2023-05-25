@@ -3,7 +3,7 @@ use std::time::Instant;
 use bevy::{
 	core_pipeline::{bloom::BloomSettings, tonemapping::Tonemapping},
 	prelude::*,
-	render::camera::ScalingMode,
+	render::{camera::ScalingMode, view::ColorGrading},
 };
 use bevy_ecs_ldtk::{LayerMetadata, LevelSelection, LevelSet, Respawn};
 use bevy_egui::{egui, EguiContexts};
@@ -12,7 +12,7 @@ use bevy_rapier2d::prelude::CollisionEvent;
 use crate::{
 	input::Action,
 	leaderboard::{CurrentScore, Leaderboard, Score},
-	level::finish::Finish,
+	level::{finish::Finish, LevelSize},
 	player::Player,
 	states::{AppState, Exit},
 };
@@ -56,7 +56,18 @@ fn setup(mut commands: Commands) {
 	camera.transform.translation.z -= 100.0;
 	camera.camera.hdr = true;
 	camera.tonemapping = Tonemapping::TonyMcMapface;
-	commands.spawn((camera, Exit(AppState::Game)));
+	commands.spawn((
+		camera,
+		BloomSettings {
+			intensity: 0.05,
+			..default()
+		},
+		ColorGrading {
+			exposure: 1.0,
+			..default()
+		},
+		Exit(AppState::Game),
+	));
 }
 
 fn timer_label_update(mut egui_ctx: EguiContexts, start_time: Res<StartTime>) {
@@ -71,10 +82,10 @@ fn timer_label_update(mut egui_ctx: EguiContexts, start_time: Res<StartTime>) {
 		});
 }
 
-pub fn grid_to_world(layer: &LayerMetadata, coord: IVec2) -> Vec2 {
+pub fn grid_to_world(level_size: &LevelSize, coord: IVec2) -> Vec2 {
 	Vec2::new(
 		coord.x as f32 + 0.5,
-		layer.c_hei as f32 - coord.y as f32 - 0.5,
+		level_size.height as f32 - coord.y as f32 - 0.5,
 	)
 }
 

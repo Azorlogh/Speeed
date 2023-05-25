@@ -6,6 +6,7 @@ use bevy_ecs_ldtk::{
 	LayerMetadata,
 };
 
+use super::{update_level_size, LevelSize};
 use crate::{
 	game::grid_to_world,
 	states::{AppState, Exit},
@@ -15,14 +16,18 @@ pub struct TextPlugin;
 
 impl Plugin for TextPlugin {
 	fn build(&self, app: &mut bevy::prelude::App) {
-		app.add_system(spawn_text.run_if(in_state(AppState::Game)));
+		app.add_system(
+			spawn_text
+				.after(update_level_size)
+				.run_if(in_state(AppState::Game)),
+		);
 	}
 }
 
 fn spawn_text(
 	mut commands: Commands,
 	asset_server: Res<AssetServer>,
-	q_layer: Query<&LayerMetadata>,
+	level_size: Res<LevelSize>,
 	q_spawned_ldtk_entities: Query<&ldtk::EntityInstance, Added<ldtk::EntityInstance>>,
 ) {
 	for instance in q_spawned_ldtk_entities
@@ -47,7 +52,7 @@ fn spawn_text(
 					)
 					.with_alignment(TextAlignment::Center),
 					transform: Transform::from_translation(
-						grid_to_world(q_layer.single(), instance.grid).extend(0.0),
+						grid_to_world(&level_size, instance.grid).extend(0.0),
 					)
 					.with_scale(Vec3::splat(1.0 / 50.0 * 0.6)),
 					..default()
