@@ -177,7 +177,8 @@ fn skip(
 	mut commands: Commands,
 	actions: Res<Input<Action>>,
 	mut next_state: ResMut<NextState<AppState>>,
-	q_ldtk_world: Query<Entity, With<LevelSet>>,
+	q_ldtk_world: Query<(Entity, &Handle<bevy_ecs_ldtk::LdtkAsset>), With<LevelSet>>,
+	ldtk_asset: Res<Assets<bevy_ecs_ldtk::LdtkAsset>>,
 	mut level_selection: ResMut<LevelSelection>,
 ) {
 	if actions.just_pressed(Action::Skip) {
@@ -185,9 +186,11 @@ fn skip(
 			panic!("expected level index");
 		};
 
-		let world = q_ldtk_world.single();
-		commands.entity(world).insert(Respawn);
-		*level_selection = LevelSelection::Index((level + 1) % 7);
+		let (world_entity, ldtk_handle) = q_ldtk_world.single();
+
+		let nb_levels = ldtk_asset.get(ldtk_handle).unwrap().project.levels.len();
+		commands.entity(world_entity).insert(Respawn);
+		*level_selection = LevelSelection::Index((level + 1) % nb_levels);
 		next_state.set(AppState::Game);
 	}
 }

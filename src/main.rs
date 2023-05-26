@@ -44,13 +44,14 @@ fn main() {
 				}),
 		);
 	} else {
-		app.add_plugins(
-			DefaultPlugins
-				.build()
-				.add_before::<bevy::asset::AssetPlugin, _>(
-					bevy_embedded_assets::EmbeddedAssetPlugin,
-				),
-		);
+		// app.add_plugins(
+		// 	DefaultPlugins
+		// 		.build()
+		// 		.add_before::<bevy::asset::AssetPlugin, _>(
+		// 			bevy_embedded_assets::EmbeddedAssetPlugin,
+		// 		),
+		// );
+		app.add_plugins(DefaultPlugins.build());
 	}
 
 	app

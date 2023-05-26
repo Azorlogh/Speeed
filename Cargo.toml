@@ -15,7 +15,7 @@ bevy_rapier2d = "0.21"
 serde = "1.0"
 serde_json = "1.0"
 bevy_egui = "0.20"
-bevy_embedded_assets = "0.7.0"
+# bevy_embedded_assets = "0.7.0"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
