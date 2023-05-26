@@ -5,13 +5,13 @@ use bevy::{
 	prelude::*,
 	render::{camera::ScalingMode, view::ColorGrading},
 };
-use bevy_ecs_ldtk::{ldtk, prelude::LdtkFields, LdtkLevel, LevelSelection, LevelSet, Respawn};
+use bevy_ecs_ldtk::{prelude::LdtkFields, LdtkLevel, LevelSelection, LevelSet, Respawn};
 use bevy_egui::{egui, EguiContexts};
 use bevy_rapier2d::prelude::CollisionEvent;
 
 use crate::{
 	input::Action,
-	leaderboard::{CurrentScore, Leaderboard, Score},
+	leaderboard::{CurrentScore, Leaderboard, Nickname, Score},
 	level::{finish::Finish, LevelSize},
 	player::Player,
 	states::{AppState, Exit},
@@ -71,6 +71,7 @@ fn setup(mut commands: Commands) {
 fn ui(
 	mut egui_ctx: EguiContexts,
 	start_time: Res<StartTime>,
+	nickname: Res<Nickname>,
 	ldtk_levels: Res<Assets<LdtkLevel>>,
 	q_level: Query<&Handle<LdtkLevel>>,
 ) {
@@ -79,6 +80,7 @@ fn ui(
 		.collapsible(false)
 		.resizable(false)
 		.anchor(egui::Align2::CENTER_TOP, egui::Vec2::ZERO)
+		.fixed_size(egui::Vec2::new(300.0, 100.0))
 		.show(egui_ctx.ctx_mut(), |ui| {
 			let score = Score(start_time.0.elapsed().as_millis() as u64);
 			ui.label(format!("{score:.2}"));
@@ -90,11 +92,23 @@ fn ui(
 			.collapsible(false)
 			.resizable(false)
 			.title_bar(false)
+			.frame(egui::Frame::none().inner_margin(32.0))
 			.anchor(egui::Align2::RIGHT_TOP, egui::Vec2::ZERO)
 			.show(egui_ctx.ctx_mut(), |ui| {
 				ui.label(format!("{}", level.level.get_string_field("name").unwrap()));
 			});
 	}
+
+	egui::Window::new("player-info")
+		.movable(false)
+		.collapsible(false)
+		.resizable(false)
+		.title_bar(false)
+		.frame(egui::Frame::none().inner_margin(32.0))
+		.anchor(egui::Align2::RIGHT_BOTTOM, egui::Vec2::ZERO)
+		.show(egui_ctx.ctx_mut(), |ui| {
+			ui.label(format!("{}", nickname.0));
+		});
 }
 
 pub fn grid_to_world(level_size: &LevelSize, coord: IVec2) -> Vec2 {
@@ -113,6 +127,7 @@ fn finish(
 	mut leaderboard: ResMut<Leaderboard>,
 	level: Res<LevelSelection>,
 	mut next_state: ResMut<NextState<AppState>>,
+	nickname: Res<Nickname>,
 ) {
 	let Ok(player_entity) = q_player.get_single_mut() else {
 		return;
@@ -128,7 +143,7 @@ fn finish(
 				{
 					let score = Score(start_time.0.elapsed().as_millis() as u64);
 					if let LevelSelection::Index(level) = level.as_ref() {
-						leaderboard.add_score(*level, score);
+						leaderboard.add_score(*level, &nickname.0, score);
 					}
 					commands.insert_resource(CurrentScore(score));
 					next_state.set(AppState::Leaderboard);

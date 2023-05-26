@@ -1,6 +1,6 @@
-use std::{error::Error, time::Duration};
+use std::error::Error;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::HashMap};
 use bevy_ecs_ldtk::{LdtkAsset, LevelSelection, LevelSet, Respawn};
 use bevy_egui::{
 	egui::{self, Align, Color32, Layout},
@@ -15,11 +15,15 @@ pub struct LeaderboardPlugin;
 impl Plugin for LeaderboardPlugin {
 	fn build(&self, app: &mut App) {
 		app.insert_resource(Leaderboard::load())
+			.insert_resource(Nickname(String::from("Default Nickname")))
 			.add_system(setup.in_schedule(OnEnter(AppState::Leaderboard)))
 			.add_system(exit.in_schedule(OnExit(AppState::Leaderboard)))
 			.add_system(leaderboard_ui.run_if(in_state(AppState::Leaderboard)));
 	}
 }
+
+#[derive(Resource)]
+pub struct Nickname(pub String);
 
 /// A score is counted as a number of milliseconds
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Resource, Serialize, Deserialize)]
@@ -27,24 +31,19 @@ pub struct Score(pub u64);
 
 impl std::fmt::Display for Score {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		// let millis = self.0%1000;
-		// let seconds = (self.0/1000);
-		// let minutes = self.0
-		// write!(f, "{}:{}.{}", duration.as_secs() / 60)
-		write!(
-			f,
-			"{}",
-			humantime::format_duration(Duration::from_millis(self.0))
-		)
+		let millis = self.0 % 1000;
+		let seconds = (self.0 / 1000) % 60;
+		let minutes = self.0 / 1000 / 60;
+		write!(f, "{minutes:02}:{seconds:02}.{millis:03}")
 	}
 }
 
 #[derive(Resource, Serialize, Deserialize)]
-pub struct Leaderboard(pub Vec<Vec<Score>>);
+pub struct Leaderboard(pub Vec<HashMap<String, Score>>);
 
 impl Leaderboard {
 	pub fn load() -> Self {
-		Self::try_load().unwrap_or(Leaderboard(vec![vec![]; 100]))
+		Self::try_load().unwrap_or(Leaderboard(vec![default(); 100]))
 	}
 
 	pub fn try_load() -> Result<Self, Box<dyn Error>> {
@@ -58,13 +57,21 @@ impl Leaderboard {
 		Ok(())
 	}
 
-	pub fn add_score(&mut self, level: usize, score: Score) {
-		let pos = self.0[level].binary_search(&score).unwrap_or_else(|e| e);
-		self.0[level].insert(pos, score);
-		self.0[level].truncate(10);
+	pub fn add_score(&mut self, level: usize, nickname: &str, score: Score) {
+		let best = self.0[level]
+			.entry(nickname.to_owned())
+			.or_insert(Score(u64::MAX));
+		*best = (*best).min(score);
 		if let Err(e) = self.save() {
 			warn!("failed to save leadeboard: {e}");
 		}
+	}
+
+	pub fn get_scores(&self, level: usize) -> Vec<(String, Score)> {
+		let mut scores: Vec<(String, Score)> =
+			self.0[level].iter().map(|(n, s)| (n.clone(), *s)).collect();
+		scores.sort_by_key(|a| a.1);
+		scores
 	}
 }
 
@@ -84,7 +91,7 @@ fn setup(mut commands: Commands) {
 
 fn leaderboard_ui(
 	mut commands: Commands,
-	score: Res<CurrentScore>,
+	current_score: Res<CurrentScore>,
 	leaderboard: Res<Leaderboard>,
 	mut egui_ctx: EguiContexts,
 	mut next_app_state: ResMut<NextState<AppState>>,
@@ -92,17 +99,13 @@ fn leaderboard_ui(
 	q_ldtk_world: Query<(Entity, &Handle<LdtkAsset>), With<LevelSet>>,
 	actions: Res<Input<Action>>,
 	ldtk_asset: Res<Assets<LdtkAsset>>,
+	nickname: Res<Nickname>,
 ) {
 	let LevelSelection::Index(level) = level_selection.clone() else {
 		panic!("expected level index");
 	};
 
-	let idx = leaderboard.0[level]
-		.iter()
-		.enumerate()
-		.filter(|(_, v)| score.0 == **v)
-		.map(|(i, _)| i)
-		.last();
+	let improved = leaderboard.0[level].get(&nickname.0) == Some(&current_score.0);
 
 	let (world_entity, ldtk_handle) = q_ldtk_world.single();
 
@@ -110,22 +113,23 @@ fn leaderboard_ui(
 
 	egui::CentralPanel::default().show(egui_ctx.ctx_mut(), |ui| {
 		ui.vertical_centered(|ui| {
-			let msg = match idx.is_some() {
-				true => "Well played!",
-				false => "Better luck next time :)",
+			let msg = match improved {
+				true => "New best time!",
+				false => "",
 			};
+
 			ui.label(msg);
-			ui.heading(&score.0.to_string());
+			ui.heading(&current_score.0.to_string());
 			ui.group(|ui| {
-				for (i, s) in leaderboard.0[level].iter().enumerate() {
+				for (name, score) in leaderboard.get_scores(level) {
 					let style = ui.style_mut();
 
-					if Some(i) == idx {
+					if name == nickname.0 && score == current_score.0 {
 						style.visuals.override_text_color = Some(Color32::RED);
 					} else {
 						style.visuals.override_text_color = None;
 					};
-					ui.label(&s.to_string());
+					ui.label(format!("{}: {}", name, score));
 				}
 			});
 			ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
