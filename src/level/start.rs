@@ -1,3 +1,7 @@
+///
+/// Start of the level
+/// Automatically spawns the player when the start entity appears
+///
 use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 

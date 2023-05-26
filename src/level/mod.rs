@@ -1,3 +1,5 @@
+/// Handles the level logic
+/// Sub-plugins handle the interactable elements (launchpads, portals, ...)
 pub mod finish;
 pub mod launchpad;
 mod portal;
@@ -73,24 +75,6 @@ impl<'w, 's> LevelSize<'w, 's> {
 	}
 }
 
-// fn update_level_size(
-// 	mut level_size: ResMut<LevelSize>,
-// 	q_layer: Query<&LayerMetadata, With<LayerMetadata>>,
-// ) {
-// 	if let Some(layer) = q_layer.iter().next() {
-// 		*level_size = LevelSize {
-// 			width: layer.c_wid as u32,
-// 			height: layer.c_hei as u32,
-// 		};
-// 	}
-// }
-
-// #[derive(Clone, Copy, Default, Resource)]
-// pub struct LevelSize {
-// 	pub width: u32,
-// 	pub height: u32,
-// }
-
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Component)]
 pub struct Wall;
 
@@ -112,6 +96,7 @@ pub struct WallCollider;
 #[derive(Component)]
 pub struct RestoresJump;
 
+/// Helper trait for the behavior of different tiles
 pub trait MapTile: Component {
 	fn restores_jump() -> bool {
 		false
@@ -127,6 +112,7 @@ impl MapTile for Wall {
 impl MapTile for Ice {}
 
 /// Spawn colliders for component T
+/// Adapted from the `bevy_ecs_ldtk` example
 pub fn spawn_wall_collision<T: MapTile>(
 	mut commands: Commands,
 	wall_query: Query<(&GridCoords, &Parent), Added<T>>,

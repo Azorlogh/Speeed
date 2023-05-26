@@ -1,3 +1,8 @@
+/// The player is composed of the following hierarchy:
+/// - a root entity
+///     - a ground sensor
+///     - a wall sensor
+///
 use bevy::{prelude::*, render::texture::DEFAULT_IMAGE_HANDLE};
 use bevy_rapier2d::prelude::*;
 
@@ -67,14 +72,14 @@ fn player_spawn(
 				Collider::cuboid(PLAYER_SIZE / 2.0 * 1.4, PLAYER_SIZE / 2.0 * 0.8),
 				ColliderMassProperties::Density(0.0),
 				Sensor,
-				TransformBundle::from(Transform::from_translation(Vec3::new(0.0, 0.0, 0.0))),
+				TransformBundle::default(),
 				ActiveEvents::COLLISION_EVENTS,
 				CollidingEntities::default(),
 				Exit(AppState::Game),
 			))
 			.id();
 
-		// Sensor for detecting walls (rectangle with the sides sticking out)
+		// Sensor for detecting the ground (rectangle sticking out of the bottom)
 		let ground_sensor = commands
 			.spawn((
 				PlayerGroundSensor,

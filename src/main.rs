@@ -44,18 +44,17 @@ fn main() {
 				}),
 		);
 	} else {
-		// app.add_plugins(
-		// 	DefaultPlugins
-		// 		.build()
-		// 		.add_before::<bevy::asset::AssetPlugin, _>(
-		// 			bevy_embedded_assets::EmbeddedAssetPlugin,
-		// 		),
-		// );
-		app.add_plugins(DefaultPlugins.build());
+		app.add_plugins(
+			DefaultPlugins
+				.build()
+				.add_before::<bevy::asset::AssetPlugin, _>(
+					bevy_embedded_assets::EmbeddedAssetPlugin,
+				),
+		);
 	}
 
 	app
-		// Couleur de fond
+		// Background color
 		.insert_resource(ClearColor(Color::BLACK))
 		// This is just to fix a bug within bevy_ecs_tilemap `https://github.com/StarArawn/bevy_ecs_tilemap/issues/373`
 		.insert_resource(TilemapRenderSettings {
@@ -130,7 +129,6 @@ fn setup_music(
 /// UI styling
 fn configure_egui(mut contexts: EguiContexts) {
 	let ctx = contexts.ctx_mut();
-	// ctx.set_visuals(egui::Visuals::light());
 	let mut fonts = FontDefinitions::default();
 	// normal text
 	{
@@ -144,17 +142,6 @@ fn configure_egui(mut contexts: EguiContexts) {
 			.or_default()
 			.insert(0, "normal".to_owned());
 	}
-	// // headers
-	// {
-	// 	let mut f =
-	// 		egui::FontData::from_static(include_bytes!("../assets/fonts/FiraSans-Bold.ttf"));
-	// 	fonts.font_data.insert("normal".to_owned(), f);
-	// 	fonts
-	// 		.families
-	// 		.entry(egui::FontFamily::Proportional)
-	// 		.or_default()
-	// 		.insert(0, "normal".to_owned());
-	// }
 
 	ctx.set_fonts(fonts);
 }

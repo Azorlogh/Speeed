@@ -1,3 +1,4 @@
+/// The launchpad propels the player in a direction
 use std::error::Error;
 
 use bevy::prelude::*;
@@ -105,6 +106,7 @@ impl LaunchpadBundle {
 	}
 }
 
+/// Launches the player when they get nearby
 fn update_launchpad(
 	asset_server: Res<AssetServer>,
 	audio: Res<Audio>,

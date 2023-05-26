@@ -1,3 +1,6 @@
+///
+/// The leaderboard menu at the end of a run.
+///
 use std::error::Error;
 
 use bevy::{prelude::*, utils::HashMap};
@@ -8,7 +11,10 @@ use bevy_egui::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{input::Action, states::AppState};
+use crate::{
+	input::Action,
+	states::{AppState, Exit},
+};
 
 pub struct LeaderboardPlugin;
 
@@ -38,8 +44,11 @@ impl std::fmt::Display for Score {
 	}
 }
 
+/// Leaderboard resource that also handles saving/loading to disk
 #[derive(Resource, Serialize, Deserialize)]
-pub struct Leaderboard(pub Vec<HashMap<String, Score>>);
+pub struct Leaderboard(
+	pub Vec<HashMap<String, Score>>, /* For each level, store each player's best score */
+);
 
 impl Leaderboard {
 	pub fn load() -> Self {
@@ -75,18 +84,14 @@ impl Leaderboard {
 	}
 }
 
+/// Score for the current finished run
 #[derive(Resource)]
 pub struct CurrentScore(pub Score);
-
-#[derive(Component)]
-pub struct RestartButton;
-#[derive(Component)]
-pub struct NextButton;
 
 fn setup(mut commands: Commands) {
 	let mut camera = Camera2dBundle::default();
 	camera.transform.translation.z = -10000.0;
-	commands.spawn(camera);
+	commands.spawn((camera, Exit(AppState::Leaderboard)));
 }
 
 fn leaderboard_ui(

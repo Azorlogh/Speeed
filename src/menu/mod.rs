@@ -16,8 +16,6 @@ pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
 	fn build(&self, app: &mut App) {
-		// app
-		// 	.add_system(exit.in_schedule(OnExit(AppState::Menu)))
 		app.add_system(setup.in_schedule(OnEnter(AppState::Menu)))
 			.add_system(menu_ui.run_if(in_state(AppState::Menu)));
 	}
@@ -36,7 +34,6 @@ fn menu_ui(
 	mut next_app_state: ResMut<NextState<AppState>>,
 	mut level_selection: ResMut<LevelSelection>,
 	q_ldtk_world: Query<(Entity, &Handle<LdtkAsset>), With<LevelSet>>,
-	actions: Res<Input<Action>>,
 	ldtk_asset: Res<Assets<LdtkAsset>>,
 	mut nickname: ResMut<Nickname>,
 	audio_sinks: Res<Assets<AudioSink>>,
@@ -45,7 +42,10 @@ fn menu_ui(
 	let (world, ldtk_handle) = q_ldtk_world.single();
 
 	egui::CentralPanel::default().show(egui_ctx.ctx_mut(), |ui| {
+		// Nickname input
 		ui.text_edit_singleline(&mut nickname.0);
+
+		// Level buttons
 		egui::ScrollArea::horizontal().show(ui, |ui| {
 			ui.with_layout(egui::Layout::left_to_right(Align::Center), |ui| {
 				for (i, level) in ldtk_asset
@@ -78,6 +78,8 @@ fn menu_ui(
 				}
 			});
 		});
+
+		// Music mute/unmute
 		if let Some(sink) = audio_sinks.get(&music.0) {
 			match sink.is_paused() {
 				true if ui.button("Unmute music").clicked() => sink.play(),

@@ -1,3 +1,4 @@
+/// Floating text elements
 use std::error::Error;
 
 use bevy::prelude::*;

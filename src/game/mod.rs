@@ -31,17 +31,16 @@ impl Plugin for GamePlugin {
 	}
 }
 
+/// When the current run started
 #[derive(Resource)]
 pub struct StartTime(Instant);
 
+/// Allow pressing escape to go back
 fn back_to_menu(mut next_app_state: ResMut<NextState<AppState>>, keys: Res<Input<KeyCode>>) {
 	if keys.just_pressed(KeyCode::Escape) {
 		next_app_state.set(AppState::Menu);
 	}
 }
-
-#[derive(Component)]
-pub struct TimerLabel;
 
 fn exit(mut _commands: Commands) {}
 
@@ -75,6 +74,7 @@ fn ui(
 	ldtk_levels: Res<Assets<LdtkLevel>>,
 	q_level: Query<&Handle<LdtkLevel>>,
 ) {
+	// Display the current time
 	egui::Window::new("time")
 		.movable(false)
 		.collapsible(false)
@@ -86,6 +86,7 @@ fn ui(
 			ui.label(format!("{score:.2}"));
 		});
 
+	// Display the level name
 	if let Ok(level) = q_level.get_single().map(|h| ldtk_levels.get(h).unwrap()) {
 		egui::Window::new("level-info")
 			.movable(false)
@@ -99,6 +100,7 @@ fn ui(
 			});
 	}
 
+	// Display the current nickname
 	egui::Window::new("player-info")
 		.movable(false)
 		.collapsible(false)
@@ -111,6 +113,7 @@ fn ui(
 		});
 }
 
+// simple helper to convert level grid coordinates to actual world coordinates
 pub fn grid_to_world(level_size: &LevelSize, coord: IVec2) -> Vec2 {
 	Vec2::new(
 		coord.x as f32 + 0.5,
@@ -118,6 +121,7 @@ pub fn grid_to_world(level_size: &LevelSize, coord: IVec2) -> Vec2 {
 	)
 }
 
+/// Handle the player getting to the finish line
 fn finish(
 	mut commands: Commands,
 	mut collision_events: EventReader<CollisionEvent>,
@@ -154,6 +158,7 @@ fn finish(
 	}
 }
 
+/// Event to restart the level
 pub struct Restart;
 
 fn restart(
@@ -172,6 +177,7 @@ fn restart(
 	}
 }
 
+// Skipping levels
 #[cfg(debug_assertions)]
 fn skip(
 	mut commands: Commands,

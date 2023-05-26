@@ -1,3 +1,5 @@
+/// Rope element
+/// Composed of a chain of small rigid-bodies
 use std::error::Error;
 
 use bevy::{prelude::*, render::texture::DEFAULT_IMAGE_HANDLE};
@@ -117,6 +119,7 @@ fn rope_spawn(mut commands: Commands, mut ev_spawn_rope: EventReader<SpawnRope>)
 	}
 }
 
+/// Apply forces on the player when they swing left & right
 fn swing_controls(
 	action: Res<Input<Action>>,
 	mut q_player: Query<&mut ExternalForce, (With<Player>, With<ImpulseJoint>)>,
@@ -134,6 +137,7 @@ fn swing_controls(
 	}
 }
 
+/// Attaches/Detaches the player when they press space
 fn update_rope(
 	mut commands: Commands,
 	mut q_player: Query<(

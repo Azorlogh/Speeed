@@ -1,3 +1,6 @@
+///
+/// Portals teleport the player while preserving absolute velocity
+///
 use std::error::Error;
 
 use bevy::prelude::*;
