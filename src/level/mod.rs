@@ -27,7 +27,7 @@ impl Plugin for LevelPlugin {
 			.add_plugin(rope::RopePlugin)
 			.add_plugin(LdtkPlugin)
 			.configure_set(LdtkSystemSet::ProcessApi.before(PhysicsSet::SyncBackend))
-			.insert_resource(LevelSelection::Index(1))
+			.insert_resource(LevelSelection::Index(0))
 			.insert_resource(LdtkSettings {
 				level_spawn_behavior: LevelSpawnBehavior::UseZeroTranslation,
 				level_background: LevelBackground::Nonexistent,
