@@ -9,6 +9,7 @@ use crate::{
 	input::Action,
 	leaderboard::{Leaderboard, Nickname},
 	states::{AppState, Exit},
+	MusicSink,
 };
 
 pub struct MenuPlugin;
@@ -38,11 +39,9 @@ fn menu_ui(
 	actions: Res<Input<Action>>,
 	ldtk_asset: Res<Assets<LdtkAsset>>,
 	mut nickname: ResMut<Nickname>,
+	audio_sinks: Res<Assets<AudioSink>>,
+	music: Res<MusicSink>,
 ) {
-	let LevelSelection::Index(level) = level_selection.clone() else {
-		panic!("expected level index");
-	};
-
 	let (world, ldtk_handle) = q_ldtk_world.single();
 
 	egui::CentralPanel::default().show(egui_ctx.ctx_mut(), |ui| {
@@ -79,33 +78,12 @@ fn menu_ui(
 				}
 			});
 		});
+		if let Some(sink) = audio_sinks.get(&music.0) {
+			match sink.is_paused() {
+				true if ui.button("Unmute music").clicked() => sink.play(),
+				false if ui.button("Mute music").clicked() => sink.pause(),
+				_ => {}
+			}
+		}
 	});
-
-	// for i in 0..ldtk_asset.get(ldtk_handle).unwrap().project.levels.len() {
-	// 	let level = &ldtk_asset.get(ldtk_handle).unwrap().project.levels[i];
-	// 	let name = level.get_string_field("name").unwrap();
-	// 	egui::Window::new(format!("level-{i}"))
-	// 		.movable(false)
-	// 		.collapsible(false)
-	// 		.resizable(false)
-	// 		.title_bar(false)
-	// 		.show(egui_ctx.ctx_mut(), |ui| {
-	// 			if ui
-	// 				.add(
-	// 					egui::Button::new(format!("Level {i}\n{name}"))
-	// 						.min_size(egui::Vec2::new(100.0, 100.0)),
-	// 				)
-	// 				.clicked()
-	// 			{
-	// 				*level_selection = LevelSelection::Index(i);
-	// 				next_app_state.set(AppState::Game);
-	// 			}
-	// 			ui.label("Best time: ");
-	// 			if let Some(score) = leaderboard.0[i].first() {
-	// 				ui.label(format!("{score}"));
-	// 			} else {
-	// 				ui.label("no score yet");
-	// 			}
-	// 		});
-	// }
 }

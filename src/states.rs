@@ -6,7 +6,6 @@ pub enum AppState {
 	#[default]
 	Game,
 	Leaderboard,
-	Editor,
 }
 
 pub struct StatePlugin;
@@ -21,6 +20,7 @@ impl Plugin for StatePlugin {
 #[derive(Component)]
 pub struct Exit(pub AppState);
 
+/// Automatically removes entities marked with the Exit component when changing state
 pub fn exit_state(
 	mut commands: Commands,
 	state: Res<State<AppState>>,

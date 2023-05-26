@@ -23,7 +23,7 @@ impl Plugin for PlayerPlugin {
 					player_render,
 					player_restart,
 				)
-					.after(input::handle_inputs)
+					.after(input::InputSet)
 					.distributive_run_if(in_state(AppState::Game)),
 			);
 	}
@@ -267,7 +267,6 @@ fn player_jumps(
 						e if *e1 == e => e0,
 						_ => continue,
 					};
-					println!("collision started!");
 					let restores_jump = q_wall.get(*wall_entity).unwrap();
 					if restores_jump.is_some() {
 						player.remaining_jumps = 1;

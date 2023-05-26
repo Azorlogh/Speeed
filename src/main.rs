@@ -12,7 +12,6 @@ use bevy_hanabi::HanabiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier2d::prelude::*;
 
-mod editor;
 mod game;
 mod input;
 mod leaderboard;
@@ -54,11 +53,16 @@ fn main() {
 		);
 	}
 
-	app.insert_resource(ClearColor(Color::BLACK))
+	app
+		// Couleur de fond
+		.insert_resource(ClearColor(Color::BLACK))
+		// This is just to fix a bug within bevy_ecs_tilemap `https://github.com/StarArawn/bevy_ecs_tilemap/issues/373`
 		.insert_resource(TilemapRenderSettings {
 			render_chunk_size: UVec2::new(128, 128),
 		})
+		// Particle effects
 		.add_plugin(HanabiPlugin)
+		// Physics
 		.insert_resource(RapierConfiguration {
 			gravity: -Vec2::Y * 80.0,
 			timestep_mode: TimestepMode::Variable {
@@ -69,14 +73,21 @@ fn main() {
 			..default()
 		})
 		.add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(1.0))
+		// User interface
 		.add_plugin(bevy_egui::EguiPlugin)
+		// input
 		.add_plugin(input::InputPlugin)
+		// Game state (menu, in-game, etc)
 		.add_plugin(states::StatePlugin)
+		// Player logic
 		.add_plugin(player::PlayerPlugin)
+		// Levels and objects inside them
 		.add_plugin(level::LevelPlugin)
+		// Main menu logic
 		.add_plugin(menu::MenuPlugin)
+		// Main game logic
 		.add_plugin(game::GamePlugin)
-		.add_plugin(editor::EditorPlugin)
+		// Leaderboard view (menu after a successful run)
 		.add_plugin(leaderboard::LeaderboardPlugin)
 		.add_startup_systems((configure_egui, setup_music));
 
@@ -93,9 +104,17 @@ fn main() {
 	app.run();
 }
 
-fn setup_music(asset_server: Res<AssetServer>, audio: Res<Audio>) {
+/// Allows controlling the music
+#[derive(Resource)]
+pub struct MusicSink(Handle<AudioSink>);
+fn setup_music(
+	mut commands: Commands,
+	asset_server: Res<AssetServer>,
+	audio_sinks: Res<Assets<AudioSink>>,
+	audio: Res<Audio>,
+) {
 	let music = asset_server.load("sounds/music.ogg");
-	audio.play_with_settings(
+	let mut music_sink = audio.play_with_settings(
 		music,
 		PlaybackSettings {
 			repeat: true,
@@ -103,8 +122,11 @@ fn setup_music(asset_server: Res<AssetServer>, audio: Res<Audio>) {
 			speed: 1.0,
 		},
 	);
+	music_sink.make_strong(&audio_sinks);
+	commands.insert_resource(MusicSink(music_sink));
 }
 
+/// UI styling
 fn configure_egui(mut contexts: EguiContexts) {
 	let ctx = contexts.ctx_mut();
 	// ctx.set_visuals(egui::Visuals::light());
