@@ -18,6 +18,7 @@ mod leaderboard;
 mod level;
 mod menu;
 mod player;
+mod settings;
 mod states;
 
 // Pour débogguer l'ordre d'exécution des systèmes
@@ -75,6 +76,8 @@ fn main() {
 		.add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(1.0))
 		// User interface
 		.add_plugin(bevy_egui::EguiPlugin)
+		// settings
+		.add_plugin(settings::SettingsPlugin)
 		// input
 		.add_plugin(input::InputPlugin)
 		// Game state (menu, in-game, etc)
@@ -93,7 +96,7 @@ fn main() {
 
 	#[cfg(debug_assertions)]
 	{
-		app.add_plugin(WorldInspectorPlugin::new());
+		// app.add_plugin(WorldInspectorPlugin::new());
 		// app.add_plugin(RapierDebugRenderPlugin::default());
 	}
 
@@ -118,7 +121,7 @@ fn setup_music(
 		music,
 		PlaybackSettings {
 			repeat: true,
-			volume: 0.5,
+			volume: 0.0,
 			speed: 1.0,
 		},
 	);

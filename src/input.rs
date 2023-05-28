@@ -1,4 +1,9 @@
-use bevy::prelude::*;
+use std::collections::BTreeMap;
+
+use bevy::{prelude::*, utils::HashMap};
+use serde::{Deserialize, Serialize};
+
+pub const JOYSTICK_THRESHOLD: f32 = 0.8;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, SystemSet)]
 pub struct InputSet;
@@ -17,13 +22,78 @@ impl Plugin for InputPlugin {
 	}
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum ButtonOrAxis {
+	Button(GamepadButtonType),
+	Axis(GamepadAxisType, bool), // false: positive, true: negative
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Mapping {
+	pub key: KeyCode,
+	pub button_or_axis: ButtonOrAxis,
+}
+
+#[derive(Clone, Serialize, Deserialize, Resource)]
+pub struct InputMapping(pub BTreeMap<Action, Mapping>);
+
+impl Default for InputMapping {
+	fn default() -> Self {
+		Self(BTreeMap::from([
+			(
+				Action::Jump,
+				Mapping {
+					key: KeyCode::Space,
+					button_or_axis: ButtonOrAxis::Button(GamepadButtonType::South),
+				},
+			),
+			(
+				Action::Left,
+				Mapping {
+					key: KeyCode::Left,
+					button_or_axis: ButtonOrAxis::Axis(GamepadAxisType::LeftStickX, true),
+				},
+			),
+			(
+				Action::Right,
+				Mapping {
+					key: KeyCode::Right,
+					button_or_axis: ButtonOrAxis::Axis(GamepadAxisType::LeftStickX, false),
+				},
+			),
+			(
+				Action::GroundPound,
+				Mapping {
+					key: KeyCode::Down,
+					button_or_axis: ButtonOrAxis::Button(GamepadButtonType::West),
+				},
+			),
+			(
+				Action::Restart,
+				Mapping {
+					key: KeyCode::R,
+					button_or_axis: ButtonOrAxis::Button(GamepadButtonType::North),
+				},
+			),
+			#[cfg(debug_assertions)]
+			(
+				Action::Skip,
+				Mapping {
+					key: KeyCode::N,
+					button_or_axis: ButtonOrAxis::Button(GamepadButtonType::LeftTrigger),
+				},
+			),
+		]))
+	}
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Resource)]
 pub enum CurrentInputMode {
 	Keyboard,
 	Gamepad,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Action {
 	Jump,
 	Left,
@@ -36,166 +106,96 @@ pub enum Action {
 
 pub fn handle_keyboard_input(
 	mut actions: ResMut<Input<Action>>,
+	mapping: Res<InputMapping>,
 	keys: Res<Input<KeyCode>>,
 	mut input_mode: ResMut<CurrentInputMode>,
 ) {
 	actions.clear();
-	let mut press = |actions: &mut Input<Action>, action| {
-		*input_mode = CurrentInputMode::Keyboard;
-		actions.press(action);
-	};
-	if keys.just_pressed(KeyCode::Space) {
-		press(&mut actions, Action::Jump);
-	}
-	if keys.just_released(KeyCode::Space) {
-		actions.release(Action::Jump);
-	}
-
-	if keys.just_pressed(KeyCode::R) {
-		press(&mut actions, Action::Restart);
-	}
-	if keys.just_released(KeyCode::R) {
-		actions.release(Action::Restart);
-	}
-
-	if keys.just_pressed(KeyCode::Down) {
-		press(&mut actions, Action::GroundPound);
-	}
-	if keys.just_released(KeyCode::Down) {
-		actions.release(Action::GroundPound);
-	}
-
-	if keys.just_pressed(KeyCode::Left) {
-		press(&mut actions, Action::Left);
-	}
-	if keys.just_released(KeyCode::Left) {
-		actions.release(Action::Left);
-	}
-	if keys.just_pressed(KeyCode::Right) {
-		press(&mut actions, Action::Right);
-	}
-	if keys.just_released(KeyCode::Right) {
-		actions.release(Action::Right);
-	}
-	#[cfg(debug_assertions)]
-	{
-		if keys.just_pressed(KeyCode::N) {
-			actions.press(Action::Skip);
+	for (action, mapping) in &mapping.0 {
+		if keys.just_pressed(mapping.key) {
+			*input_mode = CurrentInputMode::Keyboard;
+			actions.press(*action);
 		}
-		if keys.just_released(KeyCode::N) {
-			actions.release(Action::Skip);
+		if keys.just_released(mapping.key) {
+			actions.release(*action);
 		}
 	}
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct GamepadAxes {
-	horizontal: f32,
-}
+pub struct GamepadAxes(HashMap<GamepadAxisType, f32>);
 pub fn handle_gamepad_input(
 	mut actions: ResMut<Input<Action>>,
+	mapping: Res<InputMapping>,
 	gamepad_axes: Res<Axis<GamepadAxis>>,
 	buttons: Res<Input<GamepadButton>>,
 	gamepads: Res<Gamepads>,
 	mut prev_axes: Local<GamepadAxes>,
 	mut input_mode: ResMut<CurrentInputMode>,
 ) {
-	let mut press = |actions: &mut Input<Action>, action| {
-		*input_mode = CurrentInputMode::Gamepad;
-		actions.press(action);
+	let Some(gp) = gamepads.iter().next() else {
+		return;
 	};
 
-	let gamepad = gamepads.iter().next();
 	let mut axes = GamepadAxes::default();
-	if let Some(gp) = gamepad {
-		axes.horizontal = gamepad_axes
-			.get(GamepadAxis {
-				gamepad: gp,
-				axis_type: GamepadAxisType::LeftStickX,
-			})
-			.unwrap();
-	}
-	if gamepad
-		.map(|gp| {
-			buttons.just_pressed(GamepadButton {
-				gamepad: gp,
-				button_type: GamepadButtonType::South,
-			})
-		})
-		.unwrap_or(false)
-	{
-		press(&mut actions, Action::Jump);
-	}
-	if gamepad
-		.map(|gp| {
-			buttons.just_released(GamepadButton {
-				gamepad: gp,
-				button_type: GamepadButtonType::South,
-			})
-		})
-		.unwrap_or(false)
-	{
-		actions.release(Action::Jump);
+	for axis in &[
+		GamepadAxisType::LeftStickX,
+		GamepadAxisType::LeftStickY,
+		GamepadAxisType::LeftZ,
+		GamepadAxisType::RightStickX,
+		GamepadAxisType::RightStickY,
+		GamepadAxisType::RightZ,
+	] {
+		axes.0.insert(
+			*axis,
+			gamepad_axes
+				.get(GamepadAxis {
+					gamepad: gp,
+					axis_type: *axis,
+				})
+				.unwrap(),
+		);
 	}
 
-	if gamepad
-		.map(|gp| {
-			buttons.just_pressed(GamepadButton {
-				gamepad: gp,
-				button_type: GamepadButtonType::East,
-			})
-		})
-		.unwrap_or(false)
-	{
-		press(&mut actions, Action::Restart);
-	}
-	if gamepad
-		.map(|gp| {
-			buttons.just_released(GamepadButton {
-				gamepad: gp,
-				button_type: GamepadButtonType::East,
-			})
-		})
-		.unwrap_or(false)
-	{
-		actions.release(Action::Restart);
-	}
-
-	if gamepad
-		.map(|gp| {
-			buttons.just_pressed(GamepadButton {
-				gamepad: gp,
-				button_type: GamepadButtonType::West,
-			})
-		})
-		.unwrap_or(false)
-	{
-		press(&mut actions, Action::GroundPound);
-	}
-	if gamepad
-		.map(|gp| {
-			buttons.just_released(GamepadButton {
-				gamepad: gp,
-				button_type: GamepadButtonType::West,
-			})
-		})
-		.unwrap_or(false)
-	{
-		actions.release(Action::GroundPound);
-	}
-
-	const STICK_THESHOLD: f32 = 0.8;
-	if prev_axes.horizontal >= -STICK_THESHOLD && axes.horizontal < -STICK_THESHOLD {
-		press(&mut actions, Action::Left);
-	}
-	if prev_axes.horizontal < -STICK_THESHOLD && axes.horizontal >= -STICK_THESHOLD {
-		actions.release(Action::Left);
-	}
-	if prev_axes.horizontal <= STICK_THESHOLD && axes.horizontal > STICK_THESHOLD {
-		press(&mut actions, Action::Right);
-	}
-	if prev_axes.horizontal > STICK_THESHOLD && axes.horizontal <= STICK_THESHOLD {
-		actions.release(Action::Right);
+	for (action, mapping) in &mapping.0 {
+		match mapping.button_or_axis {
+			ButtonOrAxis::Button(btn) => {
+				if buttons.just_pressed(GamepadButton {
+					gamepad: gp,
+					button_type: btn,
+				}) {
+					*input_mode = CurrentInputMode::Gamepad;
+					actions.press(*action);
+				}
+				if buttons.just_released(GamepadButton {
+					gamepad: gp,
+					button_type: btn,
+				}) {
+					actions.release(*action);
+				}
+			}
+			ButtonOrAxis::Axis(axis, negative) => {
+				if let Some(prev_value) = prev_axes.0.get(&axis) {
+					if let Some(value) = axes.0.get(&axis) {
+						if negative {
+							if *prev_value >= -JOYSTICK_THRESHOLD && *value < -JOYSTICK_THRESHOLD {
+								actions.press(*action);
+							}
+							if *prev_value < -JOYSTICK_THRESHOLD && *value >= -JOYSTICK_THRESHOLD {
+								actions.release(*action);
+							}
+						} else {
+							if *prev_value <= JOYSTICK_THRESHOLD && *value > JOYSTICK_THRESHOLD {
+								actions.press(*action);
+							}
+							if *prev_value > JOYSTICK_THRESHOLD && *value <= JOYSTICK_THRESHOLD {
+								actions.release(*action);
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	*prev_axes = axes.clone();

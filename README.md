@@ -2,5 +2,10 @@
 
 My game prototype made for the REV gamedev course at ENIB
 
-Executable files are available in [the releases tab](https://github.com/Azorlogh/REV-game/releases).
+# Building
 
+To build and run Speeed, you need a Rust compiler, then run:
+
+`cargo run --release`
+
+Pre-compiled executable files for Linux and Windows are available in [the releases tab](https://github.com/Azorlogh/REV-game/releases).
