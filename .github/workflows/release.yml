@@ -28,22 +28,20 @@ jobs:
         run: |
           brew install cairo
       - name: Build
-        run: cargo build --release
-      - uses: Shopify/upload-to-release@master
-        if: matrix.os == 'windows-latest'
+        run: |
+          cargo build --release
+          mkdir artifacts
+      - if: matrix.os == 'windows-latest'
+        run: |
+          mv target/release/revgame.exe speeed-${{ github.event.release.tag_name }}_win64.exe
+      - if: matrix.os == 'ubuntu-latest'
+        run: |
+          mv target/release/revgame speeed-${{ github.event.release.tag_name }}_linux
+      - if: matrix.os == 'macos-latest'
+        run: |
+          mv target/release/revgame speeed-${{ github.event.release.tag_name }}_macos
+
+      - uses: AButler/upload-release-assets@v2.0
         with:
-          name: tunefire-${{ github.event.release.tag_name }}_win64.exe
-          path: target/release/revgame.exe
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: Shopify/upload-to-release@master
-        if: matrix.os == 'ubuntu-latest'
-        with:
-          name: tunefire-${{ github.event.release.tag_name }}_linux
-          path: target/release/revgame
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: Shopify/upload-to-release@master
-        if: matrix.os == 'macos-latest'
-        with:
-          name: tunefire-${{ github.event.release.tag_name }}_macos
-          path: target/release/revgame
+          files: "artifacts/*"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
