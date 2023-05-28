@@ -4,14 +4,15 @@ use anyhow::Result;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::input::InputMapping;
+use crate::{input::InputMapping, leaderboard::Nickname};
 
 pub struct SettingsPlugin;
 
 impl Plugin for SettingsPlugin {
 	fn build(&self, app: &mut App) {
 		let settings = load_settings();
-		app.insert_resource(settings.input_mapping)
+		app.insert_resource(settings.nickname)
+			.insert_resource(settings.input_mapping)
 			.add_event::<SaveSettings>()
 			.add_system(settings_save);
 	}
@@ -26,6 +27,7 @@ fn settings_path() -> PathBuf {
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct Settings {
+	nickname: Nickname,
 	input_mapping: InputMapping,
 }
 
@@ -48,10 +50,12 @@ pub struct SaveSettings;
 
 fn settings_save(
 	mut ev_save_settings: EventReader<SaveSettings>,
+	nickname: Res<Nickname>,
 	input_mapping: Res<InputMapping>,
 ) {
 	if ev_save_settings.iter().count() > 0 {
 		if let Err(e) = try_save(Settings {
+			nickname: nickname.clone(),
 			input_mapping: input_mapping.clone(),
 		}) {
 			error!("failed to save settings: {e:?}")

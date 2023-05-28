@@ -20,6 +20,7 @@ bevy_embedded_assets = "0.7.0"
 directories = "5.0"
 toml = "0.7.4"
 anyhow = "1.0"
+bevy_iced = "0.3.0"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

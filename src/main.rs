@@ -9,6 +9,7 @@ use bevy_egui::{
 	EguiContexts,
 };
 use bevy_hanabi::HanabiPlugin;
+#[allow(unused)]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier2d::prelude::*;
 

@@ -1,8 +1,12 @@
-use bevy::prelude::*;
-use bevy_egui::{
-	egui::{self, Align},
-	EguiContexts,
+use bevy::ecs::prelude::*;
+use bevy_iced::{
+	iced::{
+		widget::{text, Button, Column, Row},
+		Alignment, Length,
+	},
+	IcedContext,
 };
+use bevy_input::prelude::*;
 
 use super::MenuState;
 use crate::{
@@ -10,7 +14,13 @@ use crate::{
 	settings::SaveSettings,
 };
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(Clone)]
+pub enum SettingsUiMessage {
+	EditMapping(Action, InputMode),
+	ResetMappings,
+}
+
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum InputMode {
 	Keyboard,
 	Gamepad,
@@ -21,8 +31,29 @@ pub struct SettingsMenuState {
 	editing_action: Option<(Action, InputMode)>,
 }
 
+pub fn settings_update(
+	mut messages: EventReader<SettingsUiMessage>,
+	mut menu_state: ResMut<MenuState>,
+	mut mappings: ResMut<InputMapping>,
+) {
+	let MenuState::Settings(state) = menu_state.as_mut() else {
+		return;
+	};
+
+	for msg in messages.iter() {
+		match msg {
+			SettingsUiMessage::EditMapping(action, input_mode) => {
+				state.editing_action = Some((*action, *input_mode));
+			}
+			SettingsUiMessage::ResetMappings => {
+				*mappings = InputMapping::default();
+			}
+		}
+	}
+}
+
 pub fn settings_ui(
-	mut egui_ctx: EguiContexts,
+	mut ctx: IcedContext<SettingsUiMessage>,
 	mut menu_state: ResMut<MenuState>,
 	mut mappings: ResMut<InputMapping>,
 	keys: Res<Input<KeyCode>>,
@@ -34,32 +65,40 @@ pub fn settings_ui(
 		return;
 	};
 
-	egui::CentralPanel::default().show(egui_ctx.ctx_mut(), |ui| {
-		ui.label("Settings");
-		ui.add_space(32.0);
-		for (action, mapping) in &mappings.0 {
-			ui.with_layout(egui::Layout::left_to_right(Align::LEFT), |ui| {
-				ui.label(format!("{action:?}"));
-				if state.editing_action == Some((*action, InputMode::Keyboard)) {
-					ui.button("?").clicked(); // do nothing
-				} else {
-					if ui.button(format!("{:?}", mapping.key)).clicked() {
-						state.editing_action = Some((*action, InputMode::Keyboard));
-					}
-				}
-				if state.editing_action == Some((*action, InputMode::Gamepad)) {
-					ui.button("?").clicked(); // do nothing
-				} else {
-					if ui.button(format!("{:?}", mapping.button_or_axis)).clicked() {
-						state.editing_action = Some((*action, InputMode::Gamepad));
-					}
-				}
-			});
-		}
-		if ui.button("Reset to defaults").clicked() {
-			*mappings = InputMapping::default();
-		}
-	});
+	let mut mappings_col = Column::new().align_items(Alignment::Center);
+	for (action, mapping) in &mappings.0 {
+		let mut row = Row::new().push(text(format!("{:?}", action)).width(128.0));
+		row = row.push(
+			if state.editing_action == Some((*action, InputMode::Keyboard)) {
+				Button::new("?")
+			} else {
+				Button::new(text(format!("{:?}", mapping.key)))
+					.on_press(SettingsUiMessage::EditMapping(*action, InputMode::Keyboard))
+			}
+			.width(128.0),
+		);
+		row = row.push(
+			if state.editing_action == Some((*action, InputMode::Gamepad)) {
+				Button::new("?")
+			} else {
+				Button::new(text(format!("{:?}", mapping.button_or_axis)))
+					.on_press(SettingsUiMessage::EditMapping(*action, InputMode::Gamepad))
+			}
+			.width(192.0),
+		);
+		mappings_col = mappings_col.push(row);
+	}
+
+	ctx.display(
+		Column::new()
+			.align_items(Alignment::Center)
+			.width(Length::Fill)
+			.padding(64.0)
+			.spacing(32.0)
+			.push(text("Settings").size(30.0))
+			.push(mappings_col)
+			.push(Button::new("Reset to defaults").on_press(SettingsUiMessage::ResetMappings)),
+	);
 
 	if let Some((action, input_mode)) = state.editing_action.clone() {
 		match input_mode {

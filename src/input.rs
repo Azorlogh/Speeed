@@ -28,6 +28,21 @@ pub enum ButtonOrAxis {
 	Axis(GamepadAxisType, bool), // false: positive, true: negative
 }
 
+impl std::fmt::Display for ButtonOrAxis {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			ButtonOrAxis::Button(btn) => write!(f, "{btn:?}"),
+			ButtonOrAxis::Axis(axis, neg) => {
+				if *neg {
+					write!(f, "<< {axis:?}")
+				} else {
+					write!(f, "{axis:?} >>")
+				}
+			}
+		}
+	}
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Mapping {
 	pub key: KeyCode,

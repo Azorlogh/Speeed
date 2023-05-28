@@ -4,32 +4,38 @@
 use std::error::Error;
 
 use bevy::{prelude::*, utils::HashMap};
-use bevy_ecs_ldtk::{LdtkAsset, LevelSelection, LevelSet, Respawn};
-use bevy_egui::{
-	egui::{self, Align, Color32, Layout},
-	EguiContexts,
-};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-	input::Action,
-	states::{AppState, Exit},
-};
+use crate::states::{AppState, Exit};
+
+mod ui;
 
 pub struct LeaderboardPlugin;
 
 impl Plugin for LeaderboardPlugin {
 	fn build(&self, app: &mut App) {
 		app.insert_resource(Leaderboard::load())
-			.insert_resource(Nickname(String::from("Default Nickname")))
+			.add_event::<ui::UiMessage>()
 			.add_system(setup.in_schedule(OnEnter(AppState::Leaderboard)))
 			.add_system(exit.in_schedule(OnExit(AppState::Leaderboard)))
-			.add_system(leaderboard_ui.run_if(in_state(AppState::Leaderboard)));
+			.add_systems(
+				(
+					ui::leaderboard_shortcuts,
+					ui::leaderboard_ui,
+					ui::leaderboard_update,
+				)
+					.distributive_run_if(in_state(AppState::Leaderboard)),
+			);
 	}
 }
 
-#[derive(Resource)]
+#[derive(Clone, Serialize, Deserialize, Resource)]
 pub struct Nickname(pub String);
+impl Default for Nickname {
+	fn default() -> Self {
+		Self(String::from("Anonymous player"))
+	}
+}
 
 /// A score is counted as a number of milliseconds
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Resource, Serialize, Deserialize)]
@@ -92,63 +98,6 @@ fn setup(mut commands: Commands) {
 	let mut camera = Camera2dBundle::default();
 	camera.transform.translation.z = -10000.0;
 	commands.spawn((camera, Exit(AppState::Leaderboard)));
-}
-
-fn leaderboard_ui(
-	mut commands: Commands,
-	current_score: Res<CurrentScore>,
-	leaderboard: Res<Leaderboard>,
-	mut egui_ctx: EguiContexts,
-	mut next_app_state: ResMut<NextState<AppState>>,
-	mut level_selection: ResMut<LevelSelection>,
-	q_ldtk_world: Query<(Entity, &Handle<LdtkAsset>), With<LevelSet>>,
-	actions: Res<Input<Action>>,
-	ldtk_asset: Res<Assets<LdtkAsset>>,
-	nickname: Res<Nickname>,
-) {
-	let LevelSelection::Index(level) = level_selection.clone() else {
-		panic!("expected level index");
-	};
-
-	let improved = leaderboard.0[level].get(&nickname.0) == Some(&current_score.0);
-
-	let (world_entity, ldtk_handle) = q_ldtk_world.single();
-
-	let nb_levels = ldtk_asset.get(ldtk_handle).unwrap().project.levels.len();
-
-	egui::CentralPanel::default().show(egui_ctx.ctx_mut(), |ui| {
-		ui.vertical_centered(|ui| {
-			let msg = match improved {
-				true => "New best time!",
-				false => "",
-			};
-
-			ui.label(msg);
-			ui.heading(&current_score.0.to_string());
-			ui.group(|ui| {
-				for (name, score) in leaderboard.get_scores(level) {
-					let style = ui.style_mut();
-
-					if name == nickname.0 && score == current_score.0 {
-						style.visuals.override_text_color = Some(Color32::RED);
-					} else {
-						style.visuals.override_text_color = None;
-					};
-					ui.label(format!("{}: {}", name, score));
-				}
-			});
-			ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-				if ui.button("Next").clicked() || actions.just_pressed(Action::Jump) {
-					*level_selection = LevelSelection::Index((level + 1) % nb_levels);
-					next_app_state.set(AppState::Game);
-				}
-				if ui.button("Restart").clicked() || actions.just_pressed(Action::GroundPound) {
-					commands.entity(world_entity).insert(Respawn);
-					next_app_state.set(AppState::Game);
-				}
-			});
-		});
-	});
 }
 
 fn exit(mut commands: Commands, q_nodes: Query<Entity, Or<(With<Node>, With<Camera>)>>) {
