@@ -33,13 +33,13 @@ jobs:
           mkdir artifacts
       - if: matrix.os == 'windows-latest'
         run: |
-          mv target/release/revgame.exe speeed-${{ github.event.release.tag_name }}_win64.exe
+          mv target/release/revgame.exe artifacts/speeed-${{ github.event.release.tag_name }}_win64.exe
       - if: matrix.os == 'ubuntu-latest'
         run: |
-          mv target/release/revgame speeed-${{ github.event.release.tag_name }}_linux
+          mv target/release/revgame artifacts/speeed-${{ github.event.release.tag_name }}_linux
       - if: matrix.os == 'macos-latest'
         run: |
-          mv target/release/revgame speeed-${{ github.event.release.tag_name }}_macos
+          mv target/release/revgame artifacts/speeed-${{ github.event.release.tag_name }}_macos
 
       - uses: AButler/upload-release-assets@v2.0
         with:
