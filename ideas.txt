@@ -1,7 +1,0 @@
-Movements mechanics:
-- wall jump
-
-Interactive objects:
-- portals
-- jumpers
-- fans

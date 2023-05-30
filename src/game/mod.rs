@@ -14,6 +14,7 @@ use crate::{
 	leaderboard::{CurrentScore, Leaderboard, Nickname, Score},
 	level::{finish::Finish, LevelSize},
 	player::Player,
+	replay::ReplayRecording,
 	states::{AppState, Exit},
 };
 
@@ -33,7 +34,7 @@ impl Plugin for GamePlugin {
 
 /// When the current run started
 #[derive(Resource)]
-pub struct StartTime(Instant);
+pub struct StartTime(pub Instant);
 
 /// Allow pressing escape to go back
 fn back_to_menu(mut next_app_state: ResMut<NextState<AppState>>, keys: Res<Input<KeyCode>>) {
@@ -132,6 +133,7 @@ fn finish(
 	level: Res<LevelSelection>,
 	mut next_state: ResMut<NextState<AppState>>,
 	nickname: Res<Nickname>,
+	recording_replay: Res<ReplayRecording>,
 ) {
 	let Ok(player_entity) = q_player.get_single_mut() else {
 		return;
@@ -147,7 +149,12 @@ fn finish(
 				{
 					let score = Score(start_time.0.elapsed().as_millis() as u64);
 					if let LevelSelection::Index(level) = level.as_ref() {
-						leaderboard.add_score(*level, &nickname.0, score);
+						leaderboard.add_score(
+							*level,
+							&nickname.0,
+							score,
+							recording_replay.0.clone(),
+						);
 					}
 					commands.insert_resource(CurrentScore(score));
 					next_state.set(AppState::Leaderboard);

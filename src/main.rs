@@ -19,6 +19,7 @@ mod leaderboard;
 mod level;
 mod menu;
 mod player;
+mod replay;
 mod settings;
 mod states;
 
@@ -58,6 +59,8 @@ fn main() {
 	app
 		// Background color
 		.insert_resource(ClearColor(Color::BLACK))
+		// Fixed timesteps
+		.insert_resource(FixedTime::new_from_secs(1.0 / 60.0))
 		// This is just to fix a bug within bevy_ecs_tilemap `https://github.com/StarArawn/bevy_ecs_tilemap/issues/373`
 		.insert_resource(TilemapRenderSettings {
 			render_chunk_size: UVec2::new(128, 128),
@@ -87,6 +90,8 @@ fn main() {
 		.add_plugin(player::PlayerPlugin)
 		// Levels and objects inside them
 		.add_plugin(level::LevelPlugin)
+		// Replays & ghosts
+		.add_plugin(replay::ReplayPlugin)
 		// Main menu logic
 		.add_plugin(menu::MenuPlugin)
 		// Main game logic

@@ -6,7 +6,10 @@ use std::error::Error;
 use bevy::{prelude::*, utils::HashMap};
 use serde::{Deserialize, Serialize};
 
-use crate::states::{AppState, Exit};
+use crate::{
+	replay::{Replay, ReplayData},
+	states::{AppState, Exit},
+};
 
 mod ui;
 
@@ -53,7 +56,7 @@ impl std::fmt::Display for Score {
 /// Leaderboard resource that also handles saving/loading to disk
 #[derive(Resource, Serialize, Deserialize)]
 pub struct Leaderboard(
-	pub Vec<HashMap<String, Score>>, /* For each level, store each player's best score */
+	pub Vec<HashMap<String, (Score, ReplayData)>>, /* For each level, store each player's best score */
 );
 
 impl Leaderboard {
@@ -72,19 +75,24 @@ impl Leaderboard {
 		Ok(())
 	}
 
-	pub fn add_score(&mut self, level: usize, nickname: &str, score: Score) {
-		let best = self.0[level]
-			.entry(nickname.to_owned())
-			.or_insert(Score(u64::MAX));
-		*best = (*best).min(score);
+	pub fn add_score(&mut self, level: usize, nickname: &str, score: Score, replay: ReplayData) {
+		let mut improved = self.0[level]
+			.get(nickname)
+			.map(|entry| entry.0 > score)
+			.unwrap_or(true);
+		if improved {
+			self.0[level].insert(nickname.to_owned(), (score, replay));
+		}
 		if let Err(e) = self.save() {
 			warn!("failed to save leadeboard: {e}");
 		}
 	}
 
 	pub fn get_scores(&self, level: usize) -> Vec<(String, Score)> {
-		let mut scores: Vec<(String, Score)> =
-			self.0[level].iter().map(|(n, s)| (n.clone(), *s)).collect();
+		let mut scores: Vec<(String, Score)> = self.0[level]
+			.iter()
+			.map(|(n, s)| (n.clone(), s.0))
+			.collect();
 		scores.sort_by_key(|a| a.1);
 		scores
 	}

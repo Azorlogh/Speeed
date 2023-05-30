@@ -22,7 +22,7 @@ pub fn leaderboard_shortcuts(actions: Res<Input<Action>>, mut messages: EventWri
 	if actions.just_pressed(Action::Jump) {
 		messages.send(UiMessage::LevelNext);
 	} else if actions.just_pressed(Action::Restart) {
-		messages.send(UiMessage::LevelNext);
+		messages.send(UiMessage::LevelRestart);
 	}
 }
 
@@ -37,7 +37,8 @@ pub fn leaderboard_ui(
 		panic!("expected level index");
 	};
 
-	let improved = leaderboard.0[level].get(&nickname.0) == Some(&current_score.0);
+	let improved =
+		leaderboard.0[level].get(&nickname.0).map(|entry| entry.0) == Some(current_score.0);
 
 	let leaderboard = {
 		let mut col = Column::new()
@@ -63,12 +64,18 @@ pub fn leaderboard_ui(
 		false => "Well done!",
 	};
 
-	let main = Column::new()
+	let mut main = Column::new()
 		.max_width(600.0)
 		.align_items(Alignment::Center)
 		.spacing(16.0)
 		.push(text(msg).size(24.0))
-		.push(text(current_score.0.to_string()).size(36.0))
+		.push(text(current_score.0.to_string()).size(36.0));
+
+	if improved {
+		main = main.push(text("Previous best: ???"))
+	}
+
+	main = main
 		.push(Container::new(leaderboard).padding(16.0).style(
 			container_appearance
 				as for<'a> fn(&'a bevy_iced::iced_wgpu::Theme) -> container::Appearance,
